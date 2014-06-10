@@ -1,0 +1,44 @@
+<!doctype html>
+<html ng-app="ngDevstack" ng-controller="AppCtrl">
+<head>
+    <meta charset="UTF-8">
+    <title ng-bind="pageTitle"></title>
+
+    <!-- build:css --><!-- inject:css -->
+    <!-- endinject --><!-- endbuild -->
+    <!-- build:js --><!-- inject:js -->
+    <!-- endinject --><!-- endbuild -->
+
+</head>
+<body ng-cloak>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 col-md-offset-1">
+                <nav class="navbar navbar-inverse" role="navigation">
+                    <div class="container-fluid">
+
+                        <div class="navbar-header">
+                            <button type="button" class="navbar-toggle" ng-click="isCollapsed = !isCollapsed">
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                            </button>
+                        </div>
+
+                        <div class="collapse navbar-collapse" collapse="isCollapsed">
+                            <ul class="nav navbar-nav">
+                                <li ui-sref-active="active"><a ui-sref="home">Home</a></li>
+                                <li ui-sref-active="active"><a ui-sref="about">About</a></li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </nav>
+                <div ui-view="main"></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
