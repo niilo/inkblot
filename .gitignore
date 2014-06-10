@@ -1,0 +1,16 @@
+.classpath
+.project
+.settings/
+.DS_Store
+.vagrant/
+cookbooks/
+*.lock
+*.old
+.idea/
+node_modules/
+dist/
+.tmp/
+.sass-cache/
+bower_components/
+tmp/
+*.log
