@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+#^syntax detection
+
+site 'http://community.opscode.com/api/v1'
+
+# Custom cookbooks within this project. These specify dependencies that will
+# also be downloaded by librarian-chef.
+cookbook 'apt'
+
+cookbook 'vim'
+
+cookbook 'locales',
+  :github => 'phbergsmann/chef-locales',
+  :ref => 'master'
+
+cookbook 'ntp',
+  :github => 'opscode-cookbooks/ntp',
+  :ref => 'master'
+
+cookbook 'curl',
+  :github => 'retr0h/cookbook-curl',
+  :ref => 'master'
+
+cookbook 'golang',
+  :github => 'NOX73/chef-golang',
+  :ref => 'master'
+
+cookbook 'java',
+  :github => 'socrata-cookbooks/java',
+  :ref => 'master'
+
+cookbook 'mongodb',
+  :github => 'edelight/chef-mongodb',
+  :ref => 'master'
+
+cookbook 'n-and-nodejs',
+  :git => 'https://github.com/exratione/n-and-nodejs-cookbook',
+  :ref => 'v0.0.2'
+  
+cookbook 'protractor-selenium-server',
+  :github => 'exratione/protractor-selenium-server-cookbook',
+  :ref => 'v0.0.5'
