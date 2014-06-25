@@ -45,6 +45,7 @@
     "map-stream": "^0.1.0",
     "open": "0.0.4",
     "requirejs": "^2.1.14",
-    "tiny-lr": "0.0.5"
+    "tiny-lr": "0.0.5",
+    "gulp-cdnizer": "~0.2.7"
   }
 }
