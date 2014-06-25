@@ -1,5 +1,5 @@
 'use strict';
 
-angular.module('ngDevstack.home', [
+angular.module('inkblot.home', [
     'ui.router'
 ]);

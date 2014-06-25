@@ -7,8 +7,8 @@
  * automatically.
  */
 describe('home module', function () {
-    beforeEach(module('ngDevstack'));
-    beforeEach(module('ngDevstack.home'));
+    beforeEach(module('inkblot'));
+    beforeEach(module('inkblot.home'));
     beforeEach(inject(function ($rootScope, $controller) {
         $controller('HomeCtrl', {
             $scope: $rootScope.$new()

@@ -1,10 +1,10 @@
 'use strict';
 
-angular.module('ngDevstack', [
-    'ngDevstack.templates',
-    'ngDevstack.conf',
-    'ngDevstack.home',
-    'ngDevstack.about',
+angular.module('inkblot', [
+    'inkblot.templates',
+    'inkblot.conf',
+    'inkblot.home',
+    'inkblot.about',
     'ui.bootstrap',
     'ui.router'
 ]);

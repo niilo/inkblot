@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('ngDevstack.myDirectiveModule', [])
+angular.module('inkblot.myDirectiveModule', [])
 
 .directive('myDirective', function () {
     return {

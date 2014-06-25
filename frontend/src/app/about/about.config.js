@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('ngDevstack.about')
+angular.module('inkblot.about')
 
 .config(function ($stateProvider) {
     $stateProvider.state('about', {

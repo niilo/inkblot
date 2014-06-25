@@ -1,5 +1,5 @@
 'use strict';
 
-angular.module('ngDevstack.about', [
+angular.module('inkblot.about', [
     'ui.router'
 ]);

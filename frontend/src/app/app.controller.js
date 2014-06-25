@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('ngDevstack')
+angular.module('inkblot')
 
 .controller('AppCtrl', function ($rootScope, $scope) {
 
@@ -9,7 +9,7 @@ angular.module('ngDevstack')
 
     $rootScope.$on('$stateChangeSuccess', function (event, toState, toParams, fromState, fromParams) {
         if (angular.isDefined(toState.data.pageTitle)) {
-            $scope.pageTitle = toState.data.pageTitle + ' | ng-devstack';
+            $scope.pageTitle = toState.data.pageTitle + ' | inkblot';
         }
     });
 })

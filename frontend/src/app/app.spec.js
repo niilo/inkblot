@@ -4,7 +4,7 @@ describe('AppCtrl', function () {
     describe('isCurrentUrl', function () {
         var AppCtrl, $location, $scope;
 
-        beforeEach(module('ngDevstack'));
+        beforeEach(module('inkblot'));
 
         beforeEach(inject(function ($controller, _$location_, $rootScope) {
             $location = _$location_;

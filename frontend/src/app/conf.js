@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('ngDevstack.conf', [])
+angular.module('inkblot.conf', [])
 
 .constant('conf', {
     api: {

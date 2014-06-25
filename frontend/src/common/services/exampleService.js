@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('ngDevstack.myServiceModule', [])
+angular.module('inkblot.myServiceModule', [])
 
 .factory('myService', function () {
     return {
