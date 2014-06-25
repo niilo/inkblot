@@ -71,6 +71,15 @@ gulp.task('vendor:js', function () {
         .pipe(gulp.dest(config.build));
 });
 
+// Copy vendor CDN files to /build/
+gulp.task('vendor:cdn', function () {
+    if (!config.vendor_files.cdn.length) {
+        return;
+    }
+    return gulp.src(config.vendor_files.cdn, { base: '.' })
+        .pipe(gulp.dest(config.build));
+});
+
 // Copy vendor css to /build/
 gulp.task('vendor:css', function () {
     if (!config.vendor_files.css.length) {
@@ -188,14 +197,12 @@ gulp.task('assets', ['assets:img', 'vendor:assets'], function () {
 var fnInject = function (path) {
     var inject = {
         css : (config.vendor_files.css).concat(config.build + '/assets/*.css'),
-        js  : (config.vendor_files.js).concat(config.build + '/+(app|common)/**/*.module.js').concat(config.build + '/+(app|common)/**/*.js')
+        js  : (config.vendor_files.js).concat(config.build + '/+(app|common)/**/*.module.js').concat(config.build + '/+(app|common)/**/*.js'),
+        cdn : config.vendor_files.cdn
     };
-
-    return gulp.src(inject.css.concat(inject.js), { read: false })
-        .pipe(plugins.inject(path, {
-            addRootSlash: false,
-            ignorePath: ['/', config.build + '/']
-        }))
+    return gulp.src(path)
+        .pipe(plugins.inject(gulp.src(inject.css.concat(inject.js), { read: false }), {addRootSlash: false, ignorePath: ['/', config.build + '/']}))
+        .pipe(plugins.inject(gulp.src(inject.cdn, {read: false}), {addRootSlash: false, starttag: '<!-- inject:cdn:{{ext}} -->'}))
         .pipe(gulp.dest(config.build));
 };
 gulp.task('html:inject', ['styles:sass', 'scripts:lint', 'scripts:cacheTpls'], function () {
@@ -224,6 +231,21 @@ gulp.task('html', ['html:replace'], function () {
         .pipe(gulp.dest(config.dist));
 });
 
+
+gulp.task('makeCdn', ['html'], function () {
+    return gulp.src(config.dist + '/index.html')
+        .pipe(plugins.plumber())
+        .pipe(plugins.cdnizer([
+            {
+                file: 'vendor/angular/angular.js',
+                package: 'angular',
+                // angular has a bizarre version string inside bower, with extra information.
+                // using major.minor.patch directly ensures it works with the CDN
+                cdn: '//ajax.googleapis.com/ajax/libs/angularjs/${ major }.${ minor }.${ patch }/angular.min.js'
+            }
+        ]))
+    .pipe(gulp.dest(config.dist));
+});
 
 
 // Karma
@@ -262,7 +284,7 @@ gulp.task('test:watch', ['vendor:assets'], function () {
 // ============
 
 // Add files to Watch
-gulp.task('watch', ['styles:sass', 'scripts:lint', 'scripts:cacheTpls', 'assets:img', 'vendor:css', 'vendor:js', 'vendor:assets', 'test:watch', 'html:inject'], function () {
+gulp.task('watch', ['styles:sass', 'scripts:lint', 'scripts:cacheTpls', 'assets:img', 'vendor:css', 'vendor:js', 'vendor:cdn', 'vendor:assets', 'test:watch', 'html:inject'], function () {
     require('./server.js')(server);
 
     // watch for JS changes
@@ -335,11 +357,11 @@ gulp.task('clean:compile', function () {
 // ===============
 
 gulp.task('build', ['clean:build'], function () {
-    gulp.start('styles:sass', 'scripts:lint', 'scripts:cacheTpls', 'vendor:css', 'vendor:js', 'vendor:assets', 'test:run', 'assets:img', 'html:inject');
+    gulp.start('styles:sass', 'scripts:lint', 'scripts:cacheTpls', 'vendor:css', 'vendor:js', 'vendor:cdn', 'vendor:assets', 'test:run', 'assets:img', 'html:inject');
 });
 
 gulp.task('compile', ['clean:compile', 'build'], function () {
-    gulp.start('styles', 'scripts', 'assets', 'html');
+    gulp.start('styles', 'scripts', 'assets', 'makeCdn');
 });
 
 gulp.task('default', function () {
