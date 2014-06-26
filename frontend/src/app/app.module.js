@@ -5,6 +5,7 @@ angular.module('inkblot', [
     'inkblot.conf',
     'inkblot.home',
     'inkblot.about',
+    'inkblot.commentsDirective',
     'ui.bootstrap',
     'ui.router'
 ]);
