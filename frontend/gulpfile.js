@@ -242,6 +242,13 @@ gulp.task('makeCdn', ['html'], function () {
                 // angular has a bizarre version string inside bower, with extra information.
                 // using major.minor.patch directly ensures it works with the CDN
                 cdn: '//ajax.googleapis.com/ajax/libs/angularjs/${ major }.${ minor }.${ patch }/angular.min.js'
+            },
+            {
+                file: 'vendor/jquery/dist/jquery.js',
+                package: 'jquery',
+                // http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.11.1.min.js
+                //cdn: '//ajax.aspnetcdn.com/ajax/jQuery/jquery-${ major }.${ minor }.${ patch }.min.js'
+                cdn: '//ajax.googleapis.com/ajax/libs/jquery/${ major }.${ minor }.${ patch }/jquery.min.js'
             }
         ]))
     .pipe(gulp.dest(config.dist));

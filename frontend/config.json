@@ -21,8 +21,9 @@
 
   "vendor_files": {
     "cdn": [
+            "vendor/jquery/dist/jquery.js",
             "vendor/angular/angular.js"
-        ],
+    ],
     "js": [
             "vendor/angular-ui-router/release/angular-ui-router.js",
             "vendor/angular-bootstrap/ui-bootstrap-tpls.js"
