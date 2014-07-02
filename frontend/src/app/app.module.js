@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('inkblot', [
-    'inkblot.templates',
+    'templates.app',
     'inkblot.conf',
     'inkblot.home',
     'inkblot.about',

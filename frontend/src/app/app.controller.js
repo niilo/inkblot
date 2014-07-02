@@ -12,6 +12,4 @@ angular.module('inkblot')
             $scope.pageTitle = toState.data.pageTitle + ' | inkblot';
         }
     });
-})
-
-;
+});

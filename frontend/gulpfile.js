@@ -21,7 +21,7 @@ var fnSass = function (path) {
         }))
         .on('error', function (err) {
             console.log(err.message);
-            process.exit(1);
+            // process.exit(1);
         })
         .pipe(plugins.autoprefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4', {
             map: true,
@@ -29,10 +29,13 @@ var fnSass = function (path) {
             to: pkg.name + '-' + pkg.version + '.css'
         }))
         .pipe(plugins.size({ showFiles: true, title: '[CSS]' }))
-        .pipe(gulp.dest(config.build + '/assets'));
+        .pipe(gulp.dest(config.build + '/assets'))
+        .on('end', function () {
+            require('fs').unlink(path);
+        });
 };
 gulp.task('styles:sass:imports', function () {
-    var files = [config.app + '/+(sass|app|common)/**/*.scss', '!' + config.app + '/sass/includes/*.scss'];
+    var files = [config.app + '/+(sass|app|common)/**/*.scss', '!' + config.app + '/sass/includes/*.scss', '!' + config.app + '/+(app|common)/**/_*.scss'];
     return gulp.src(files, { read: false })
         .pipe(plugins.intercept(function (file) {
             file.contents = new Buffer('@import \'' + file.path + '\';');
@@ -112,7 +115,7 @@ var fnCacheTpls = function (path) {
             quotes: true
         }))
         .pipe(plugins.angularTemplatecache({
-            module: pkg.name + '.templates',
+            module: 'templates.app',
             standalone: true
         }))
         .pipe(plugins.concat('templates.js'))
@@ -120,12 +123,6 @@ var fnCacheTpls = function (path) {
 };
 gulp.task('scripts:cacheTpls', function () {
     return fnCacheTpls(config.paths.templates);
-});
-gulp.task('scripts:ngmin', ['scripts:cacheTpls'], function () {
-    return gulp.src(config.paths.scripts)
-        .pipe(plugins.ngmin())
-        .pipe(plugins.concat(pkg.name + '-' + pkg.version + '.js'))
-        .pipe(gulp.dest(config.build + '/assets'));
 });
 
 // Check JavaScript code quality with JSHint
@@ -147,9 +144,10 @@ gulp.task('scripts:lint', function () {
 });
 
 // Concat and minify JavaScript
-gulp.task('scripts', ['scripts:lint', 'scripts:ngmin', 'vendor:js'], function () {
-    var arr = (config.vendor_files.js).concat([config.build + '/assets/' + pkg.name + '-' + pkg.version + '.js', config.build + '/app/templates.js']);
+gulp.task('scripts', ['scripts:lint', 'scripts:cacheTpls', 'vendor:js'], function () {
+    var arr = (config.vendor_files.js).concat(config.paths.scripts.concat(config.build + '/app/templates.js'));
     return gulp.src(arr)
+        .pipe(plugins.ngmin())
         .pipe(plugins.concat(pkg.name + '-' + pkg.version + '.js'))
         .pipe(plugins.size({ showFiles: true, title: '[JS]' }))
         .pipe(plugins.uglify({
@@ -277,7 +275,7 @@ gulp.task('test:run', ['scripts:lint', 'scripts:cacheTpls', 'vendor:assets', 'st
         });
 });
 
-gulp.task('test:watch', ['vendor:assets'], function () {
+gulp.task('test:watch', ['scripts:lint', 'scripts:cacheTpls', 'vendor:assets', 'styles:sass', 'html:inject'], function () {
     gulp.src(testFiles)
         .pipe(plugins.karma({
             configFile: 'karma.conf.js',
@@ -322,11 +320,12 @@ gulp.task('watch', ['styles:sass', 'scripts:lint', 'scripts:cacheTpls', 'assets:
     });
 
     // watch for SASS changes
-    gulp.watch(config.paths.sass, ['styles:sass:imports'], function (event) {
-        if (event.path.lastIndexOf('.scss') === event.path.length - 5) {
+    var runSequence = require('run-sequence');
+    gulp.watch(config.paths.sass, function (event) {
+        runSequence('styles:sass:imports', function () {
             var files = config.build + '/assets/' + pkg.name + '-' + pkg.version + '.scss';
             return fnSass(files).pipe(plugins.livereload(server));
-        }
+        });
     });
 
     gulp.watch(config.paths.assets, function (event) {
@@ -355,7 +354,7 @@ gulp.task('clean:build', function () {
 });
 gulp.task('clean:compile', function () {
     return gulp.src(config.dist, { read: false })
-        .pipe(plugins.rimraf());
+        .pipe(plugins.rimraf({ force: true }));
 });
 
 

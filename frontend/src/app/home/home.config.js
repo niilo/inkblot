@@ -15,6 +15,4 @@ angular.module('inkblot.home')
             pageTitle: 'Home'
         }
     });
-})
-
-;
+});

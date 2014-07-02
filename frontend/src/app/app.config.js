@@ -33,6 +33,4 @@ angular.module('inkblot')
 
         return path + '/?' + params.join('&');
     });
-})
-
-;
+});

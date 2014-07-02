@@ -15,6 +15,4 @@ angular.module('inkblot.about')
             pageTitle: 'About'
         }
     });
-})
-
-;
+});
