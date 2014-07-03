@@ -27,6 +27,14 @@ angular.module('inkblot.commentsDirective', [])
                 scope.restore();
             };
 
+            scope.likeComment = function (index) {
+                commentsFactory.like(index);
+            };
+            
+            scope.hateComment = function (index) {
+                commentsFactory.hate(index);
+            };
+                
 
             scope.restore = function () {
                 scope.editMode = false;
@@ -43,7 +51,7 @@ angular.module('inkblot.commentsDirective', [])
             editor.bind('keyup keydown', function () {
                 scope.commentText = editor.text().trim();
             });
-
+            
         },
         templateUrl: 'directives/commentsDirective.tpl.html'
     };
@@ -52,6 +60,8 @@ angular.module('inkblot.commentsDirective', [])
 .factory('commentsFactory', [function () {
     return {
         put: function (comment) {
+            comment.author = 'anonymous';
+            comment.published = new Date();
             localStorage.setItem('comment' + comment.id, JSON.stringify(comment));
             return this.getAll();
         },
@@ -67,6 +77,53 @@ angular.module('inkblot.commentsDirective', [])
                 }
             }
             return comments;
+        },
+        like: function (index) {
+            console.log('liked : ' + index);
+        },
+        hate: function (index) {
+            console.log('hated : ' + index);
         }
     };
-}]);
+}])
+
+.filter('quote', function () {
+    return function (input) {
+
+      String.prototype.convertQuoteTagToHtmlTag = function (quoteTag, htmlTag) {
+        var bs = '[' + quoteTag + ']';
+        var hs = '<' + htmlTag + '>';
+        var be = '[/' + quoteTag + ']';
+        var he = '</' + htmlTag + '>';
+        var output = this;
+        var i = -1;
+        while (output.indexOf(be) !== -1) {
+          i = output.indexOf(be);
+          output = output.substring(0, i) + he + output.substring(i + be.length);
+        }
+        while (output.indexOf(bs) !== -1) {
+          i = output.indexOf(bs);
+          output = output.substring(0, i) + hs + output.substring(i + bs.length);
+        }
+        return output;
+      };
+
+      String.prototype.replaceAllwoRegExp = function (from, to) {
+        var output = this;
+        while (output.indexOf(from) !== -1) {
+          var i = output.indexOf(from);
+          output = output.substring(0, i) + to + output.substring(i + to.length);
+        }
+        return output;
+      };
+
+      String.prototype.convertLineFeedToHtmlBreak = function () {
+        var br = '<br>';
+        var output = this;
+        return output.replaceAllwoRegExp('\r\n', br).replaceAllwoRegExp('\n', br);
+      };
+
+      return input.convertQuoteTagToHtmlTag('quote', 'blockquote').convertQuoteTagToHtmlTag('to', 'cite');
+
+    };
+  });

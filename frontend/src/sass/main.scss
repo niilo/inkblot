@@ -1,3 +1,14 @@
 body {
     padding-top: 20px;
 }
+
+#editor { 
+    margin-bottom: 10px;
+    white-space: pre;
+}
+.comment-text {
+    white-space: pre-line;
+}
+[contenteditable="true"] { padding: 10px; outline: 2px dashed #CCC; }
+[contenteditable="true"]:hover { outline: 2px dashed #0090D2; }
+    

@@ -1,9 +1,64 @@
-<div class="comment-area" ng-show="!editMode">
-    <ul>
-        <li ng-repeat="comment in comments|orderBy:'id'">
-            <a href="#" ng-click="openEditor(comment.id)">{{comment.title}}</a>
-        </li>
-    </ul>
+<script>
+$( editor ).keypress( function ( e ) {
+    var sel, node, offset, text, textBefore, textAfter, range;
+
+    sel = window.getSelection();
+
+    // the node that contains the caret
+    node = sel.anchorNode;
+
+    // if ENTER was pressed while the caret was inside the editor field
+    if ( node.parentNode === editor && e.keyCode === 13 ) {
+
+        // prevent the browsers from inserting <div>, <p>, or <br> on their own
+        e.preventDefault();
+
+        // the caret position inside the node
+        offset = sel.anchorOffset;        
+
+        // insert a '\n' character at that position
+        text = node.textContent;
+        textBefore = text.slice( 0, offset );
+        textAfter = text.slice( offset ) || ' ';
+        node.textContent = textBefore + '\n' + textAfter;
+
+        // position the caret after that new-line character
+        range = document.createRange();
+        range.setStart( node, offset + 1 );
+        range.setEnd( node, offset + 1 );
+
+        // update the selection
+        sel.removeAllRanges();
+        sel.addRange( range );
+    }
+});
+</script>
+<div class="comment-area" ng-show="comments.length" ng-repeat="comment in comments|orderBy:'id'">
+    <div class="pull-left">
+        <i class="fa fa-comments-o fa-2x"></i>
+    </div>
+    <div class="media-body">
+        <div class="well pull-right">
+            <span class="badge">{{comment.likes}}</span>
+            <button type="button" class="btn btn-default" ng-disabled="disabled" ng-click="disabled=true; comment.likes = comment.likes+1; likeComment(comment.id)">
+                <i class="fa fa-thumbs-o-up"></i>
+            </button>
+            <button type="button" class="btn btn-default" ng-disabled="disabled" ng-click="disabled=true; comment.likes = comment.likes-1; hateComment(comment.id)">
+                <i class="fa fa-thumbs-o-down"></i>
+            </button>
+            <button type="button" class="btn btn-default" ng-click="reply(comment.author,comment.text)">
+                <i class="fa fa-quote-left"></i> LAINAA
+            </button>
+        </div>
+        <h4 class="media-heading"> {{comment.author}}
+        <small> ({{comment.published | date:'dd.MM.yy @ HH:mm' }})</small>
+      </h4>
+        <div class="comment-id" hidden="true">{{comment.id}}</div>
+        <div class="comment-text">{{comment.content | quote}}</div>
+    </div>
+</div>
+<div class="comment-area" ng-hide="comments.length">
+    No comments. Be brave and write first.
 </div>
 <div id="editor" ng-show="editMode" class="comment-area" contenteditable="true" ng-bind="commentText"></div>
 <span><a href="#" ng-click="save()" ng-show="editMode">Save</a></span>
