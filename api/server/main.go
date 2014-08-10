@@ -11,25 +11,56 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"time"
 
 	"code.google.com/p/go.net/context"
+	"github.com/PuerkitoBio/throttled"
+	"github.com/julienschmidt/httprouter"
+	"github.com/justinas/alice"
 	"github.com/niilo/golib/context/google"
 	"github.com/niilo/golib/context/userip"
 )
 
+func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	fmt.Fprint(w, "Welcome!\n")
+}
+
+func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
+}
+
+func timeoutHandler(h http.Handler) http.Handler {
+	return http.TimeoutHandler(h, 1*time.Second, "timed out")
+}
+
+//func myApp(w http.ResponseWriter, r *http.Request) {
+//	w.Write([]byte("Hello world!"))
+//}
+
 func main() {
-	http.HandleFunc("/search", handleSearch)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	router := httprouter.New()
+	router.GET("/", Index)
+	router.GET("/hello/:name", Hello)
+	router.GET("/search", handleSearch)
+
+	//log.Fatal(http.ListenAndServe(":8080", router))
+
+	th := throttled.Interval(throttled.PerSec(10), 1, &throttled.VaryBy{Path: true}, 50)
+	//myHandler := http.HandlerFunc(myApp)
+
+	chain := alice.New(th.Throttle, timeoutHandler).Then(router)
+	http.ListenAndServe(":8080", chain)
+
 }
 
 // handleSearch handles URLs like /search?q=golang&timeout=1s by forwarding the
 // query to google.Search. If the query param includes timeout, the search is
 // canceled after that duration elapses.
-func handleSearch(w http.ResponseWriter, req *http.Request) {
+func handleSearch(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	// ctx is the Context for this handler. Calling cancel closes the
 	// ctx.Done channel, which is the cancellation signal for requests
 	// started by this handler.
