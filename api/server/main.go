@@ -16,9 +16,9 @@ import (
 	"net/http"
 	"time"
 
-	"code.google.com/p/go.blog/content/context/google"
-	"code.google.com/p/go.blog/content/context/userip"
 	"code.google.com/p/go.net/context"
+	"github.com/niilo/golib/context/google"
+	"github.com/niilo/golib/context/userip"
 )
 
 func main() {
