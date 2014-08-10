@@ -15,6 +15,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"code.google.com/p/go.net/context"
@@ -23,7 +24,15 @@ import (
 	"github.com/justinas/alice"
 	"github.com/niilo/golib/context/google"
 	"github.com/niilo/golib/context/userip"
+	"gopkg.in/mgo.v2"
 )
+
+// appContext contains our local context; our database pool, session store, template
+// registry and anything else our handlers need to access. We'll create an instance of it
+// in our main() function and then explicitly pass a reference to it for our handlers to access.
+type appContext struct {
+	mongoSession *mgo.Session
+}
 
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	fmt.Fprint(w, "Welcome!\n")
@@ -42,6 +51,21 @@ func timeoutHandler(h http.Handler) http.Handler {
 //}
 
 func main() {
+	uri := os.Getenv("INKBLOT_MONGODBURL")
+	if uri == "" {
+		fmt.Println("no connection string provided")
+		os.Exit(1)
+	}
+
+	mongoSession, err := mgo.Dial(uri)
+	if err != nil {
+		panic(err)
+	}
+	defer mongoSession.Close()
+
+	// Optional. Switch the session to a monotonic behavior.
+	mongoSession.SetMode(mgo.Monotonic, true)
+
 	router := httprouter.New()
 	router.GET("/", Index)
 	router.GET("/hello/:name", Hello)
