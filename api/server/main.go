@@ -11,27 +11,48 @@
 package main
 
 import (
-	"fmt"
-	"html/template"
-	"log"
-	"net/http"
-	"os"
-	"time"
-
 	"code.google.com/p/go.net/context"
-	"github.com/PuerkitoBio/throttled"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"github.com/dmotylev/nutrition"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 	"github.com/niilo/golib/context/google"
 	"github.com/niilo/golib/context/userip"
+	"github.com/niilo/golib/smtp"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
+	"html/template"
+	"log"
+	"math/rand"
+	"net/http"
+	"runtime/debug"
+	"time"
 )
 
-// appContext contains our local context; our database pool, session store, template
+// AppContext contains our local context; our database pool, session store, template
 // registry and anything else our handlers need to access. We'll create an instance of it
 // in our main() function and then explicitly pass a reference to it for our handlers to access.
-type appContext struct {
+type AppContext struct {
 	mongoSession *mgo.Session
+	smtpServer   *smtp.SmtpServer
+}
+
+var Configuration struct {
+	RequestLog                 string
+	AppLog                     string
+	ServerAddr                 string
+	ReadTimeout                time.Duration
+	WriteTimeout               time.Duration
+	AllowCors                  bool
+	MongoUrl                   string
+	MongoDbName                string
+	SmtpHost                   string
+	SmtpHostPort               int
+	SmtpUser                   string
+	SmtpUserPwd                string
+	smtpEmailAddressInMessages string
 }
 
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -46,38 +67,89 @@ func timeoutHandler(h http.Handler) http.Handler {
 	return http.TimeoutHandler(h, 1*time.Second, "timed out")
 }
 
+// Recoverer is a middleware that recovers from panics, logs the panic (and a
+// backtrace), and returns a HTTP 500 (Internal Server Error) status if
+// possible.
+//
+// Recoverer prints a request ID if one is provided.
+func recoverHandler(h http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if e := recover(); e != nil {
+				info("recover")
+				//printPanic(reqID, err)
+				debug.PrintStack()
+				http.Error(w, http.StatusText(500), 500)
+				return
+			}
+		}()
+		h.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
+}
+
 //func myApp(w http.ResponseWriter, r *http.Request) {
 //	w.Write([]byte("Hello world!"))
 //}
 
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+	confFile := flag.String("conf", "inkblot.cfg", "Full path to configuration file")
+	info("loading configuration.")
+
+	err := nutrition.Env("INKBLOT_").File(*confFile).Feed(&Configuration)
+
+	if err != nil {
+		log.Fatalf("[inkblot] Unable to read properties:%v\n", err)
+	}
+}
+
 func main() {
-	uri := os.Getenv("INKBLOT_MONGODBURL")
-	if uri == "" {
-		fmt.Println("no connection string provided")
-		os.Exit(1)
+
+	appContext := AppContext{}
+
+	appContext.smtpServer = &smtp.SmtpServer{
+		Host:     Configuration.SmtpHost,
+		Port:     Configuration.SmtpHostPort,
+		Username: Configuration.SmtpUser,
+		Passwd:   Configuration.SmtpUserPwd,
 	}
 
-	mongoSession, err := mgo.Dial(uri)
+	mongoSession, err := mgo.Dial(Configuration.MongoUrl)
 	if err != nil {
-		panic(err)
+		log.Fatalf("MongoDB connection failed, with address '%s'.", Configuration.MongoUrl)
 	}
+
 	defer mongoSession.Close()
 
 	// Optional. Switch the session to a monotonic behavior.
 	mongoSession.SetMode(mgo.Monotonic, true)
+	appContext.mongoSession = mongoSession
 
 	router := httprouter.New()
 	router.GET("/", Index)
+	router.GET("/json", appContext.handleJSON)
+	router.GET("/panic", appContext.handlePANIC)
 	router.GET("/hello/:name", Hello)
 	router.GET("/search", handleSearch)
 
 	//log.Fatal(http.ListenAndServe(":8080", router))
 
-	th := throttled.Interval(throttled.PerSec(10), 1, &throttled.VaryBy{Path: true}, 50)
+	//th := throttled.Interval(throttled.PerSec(1000), 10, &throttled.VaryBy{Path: true}, 50)
 	//myHandler := http.HandlerFunc(myApp)
 
-	chain := alice.New(th.Throttle, timeoutHandler).Then(router)
-	http.ListenAndServe(":8080", chain)
+	//chain := alice.New(th.Throttle, timeoutHandler).Then(router)
+	chain := alice.New(timeoutHandler, recoverHandler).Then(router)
+
+	//c := mongoSession.DB("test").C("people")
+	//err = c.Insert(&Person{"Ale", "+55 53 8116 9639"},
+	//	&Person{"Cla", "+55 53 8402 8510"})
+	//if err != nil {
+	//	panic(err)
+	//}
+
+	info("Listening on port 8080")
+	log.Fatal(http.ListenAndServe(":8080", chain))
 
 }
 
@@ -136,6 +208,59 @@ func handleSearch(w http.ResponseWriter, req *http.Request, _ httprouter.Params)
 		log.Print(err)
 		return
 	}
+}
+
+type Person struct {
+	Name string
+	Age  string
+}
+
+func (a *AppContext) handleJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	mongoSession := a.mongoSession.Clone()
+	defer mongoSession.Close()
+
+	//krille := Person{Name: "Krille", Age: "40"}
+	//buf, _ := json.Marshal(&krille)
+	//w.Write(buf)
+
+	c := mongoSession.DB("test").C("people")
+	result := Person{}
+	err := c.Find(bson.M{"name": "Ale"}).One(&result)
+	if err != nil {
+		info(err.Error())
+		panic(err)
+	}
+	buf, _ := json.Marshal(&result)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(buf)
+
+}
+
+func (a *AppContext) handlePANIC(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	mongoSession := a.mongoSession.Clone()
+	defer mongoSession.Close()
+
+	panic("abua")
+
+	//krille := Person{Name: "Krille", Age: "40"}
+	//buf, _ := json.Marshal(&krille)
+	//w.Write(buf)
+
+	c := mongoSession.DB("test").C("people")
+	result := Person{}
+	err := c.Find(bson.M{"name": "Ale"}).One(&result)
+	if err != nil {
+		info(err.Error())
+		panic(err)
+	}
+	buf, _ := json.Marshal(&result)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(buf)
+
+}
+
+func info(template string, values ...interface{}) {
+	log.Printf("[inkblot] "+template+"\n", values...)
 }
 
 var resultsTemplate = template.Must(template.New("results").Parse(`
