@@ -71,13 +71,11 @@ func timeoutHandler(h http.Handler) http.Handler {
 // backtrace), and returns a HTTP 500 (Internal Server Error) status if
 // possible.
 //
-// Recoverer prints a request ID if one is provided.
 func recoverHandler(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e := recover(); e != nil {
 				info("recover")
-				//printPanic(reqID, err)
 				debug.PrintStack()
 				http.Error(w, http.StatusText(500), 500)
 				return
@@ -87,10 +85,6 @@ func recoverHandler(h http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(fn)
 }
-
-//func myApp(w http.ResponseWriter, r *http.Request) {
-//	w.Write([]byte("Hello world!"))
-//}
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -122,31 +116,17 @@ func main() {
 
 	defer mongoSession.Close()
 
-	// Optional. Switch the session to a monotonic behavior.
+	// Switch the session to a monotonic behavior.
 	mongoSession.SetMode(mgo.Monotonic, true)
 	appContext.mongoSession = mongoSession
 
 	router := httprouter.New()
 	router.GET("/", Index)
 	router.GET("/json", appContext.handleJSON)
-	router.GET("/panic", appContext.handlePANIC)
 	router.GET("/hello/:name", Hello)
 	router.GET("/search", handleSearch)
 
-	//log.Fatal(http.ListenAndServe(":8080", router))
-
-	//th := throttled.Interval(throttled.PerSec(1000), 10, &throttled.VaryBy{Path: true}, 50)
-	//myHandler := http.HandlerFunc(myApp)
-
-	//chain := alice.New(th.Throttle, timeoutHandler).Then(router)
 	chain := alice.New(timeoutHandler, recoverHandler).Then(router)
-
-	//c := mongoSession.DB("test").C("people")
-	//err = c.Insert(&Person{"Ale", "+55 53 8116 9639"},
-	//	&Person{"Cla", "+55 53 8402 8510"})
-	//if err != nil {
-	//	panic(err)
-	//}
 
 	info("Listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", chain))
@@ -218,33 +198,6 @@ type Person struct {
 func (a *AppContext) handleJSON(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	mongoSession := a.mongoSession.Clone()
 	defer mongoSession.Close()
-
-	//krille := Person{Name: "Krille", Age: "40"}
-	//buf, _ := json.Marshal(&krille)
-	//w.Write(buf)
-
-	c := mongoSession.DB("test").C("people")
-	result := Person{}
-	err := c.Find(bson.M{"name": "Ale"}).One(&result)
-	if err != nil {
-		info(err.Error())
-		panic(err)
-	}
-	buf, _ := json.Marshal(&result)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(buf)
-
-}
-
-func (a *AppContext) handlePANIC(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	mongoSession := a.mongoSession.Clone()
-	defer mongoSession.Close()
-
-	panic("abua")
-
-	//krille := Person{Name: "Krille", Age: "40"}
-	//buf, _ := json.Marshal(&krille)
-	//w.Write(buf)
 
 	c := mongoSession.DB("test").C("people")
 	result := Person{}
