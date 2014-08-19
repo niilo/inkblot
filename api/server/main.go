@@ -75,7 +75,7 @@ func recoverHandler(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e := recover(); e != nil {
-				info("recover")
+				logInfo("recover")
 				debug.PrintStack()
 				http.Error(w, http.StatusText(500), 500)
 				return
@@ -89,7 +89,7 @@ func recoverHandler(h http.Handler) http.Handler {
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	confFile := flag.String("conf", "inkblot.cfg", "Full path to configuration file")
-	info("loading configuration.")
+	logInfo("loading configuration.")
 
 	err := nutrition.Env("INKBLOT_").File(*confFile).Feed(&Configuration)
 
@@ -125,10 +125,11 @@ func main() {
 	router.GET("/json", appContext.handleJSON)
 	router.GET("/hello/:name", Hello)
 	router.GET("/search", handleSearch)
+	router.GET("/story/:id", appContext.getStory)
 
 	chain := alice.New(timeoutHandler, recoverHandler).Then(router)
 
-	info("Listening on port 8080")
+	logInfo("Listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", chain))
 
 }
@@ -203,7 +204,7 @@ func (a *AppContext) handleJSON(w http.ResponseWriter, req *http.Request, _ http
 	result := Person{}
 	err := c.Find(bson.M{"name": "Ale"}).One(&result)
 	if err != nil {
-		info(err.Error())
+		logInfo(err.Error())
 		panic(err)
 	}
 	buf, _ := json.Marshal(&result)
@@ -212,7 +213,19 @@ func (a *AppContext) handleJSON(w http.ResponseWriter, req *http.Request, _ http
 
 }
 
-func info(template string, values ...interface{}) {
+func logDebug(template string, values ...interface{}) {
+	log.Printf("[inkblot] "+template+"\n", values...)
+}
+
+func logInfo(template string, values ...interface{}) {
+	log.Printf("[inkblot] "+template+"\n", values...)
+}
+
+func logError(template string, values ...interface{}) {
+	log.Printf("[inkblot] "+template+"\n", values...)
+}
+
+func logFatal(template string, values ...interface{}) {
 	log.Printf("[inkblot] "+template+"\n", values...)
 }
 
