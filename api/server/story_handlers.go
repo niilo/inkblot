@@ -3,9 +3,12 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"github.com/julienschmidt/httprouter"
-	"gopkg.in/mgo.v2/bson"
 	"net/http"
+	"time"
+
+	"github.com/julienschmidt/httprouter"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 const (
@@ -33,6 +36,43 @@ func (a *AppContext) getStory(w http.ResponseWriter, req *http.Request, p httpro
 		return
 	}
 	story.writeToResponse(w)
+}
+
+func (a *AppContext) createStory(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+	body := Body{}
+	err := json.NewDecoder(req.Body).Decode(&body)
+	if err != nil {
+		logError(err.Error())
+		http.Error(w, "Request decoding failed.", http.StatusInternalServerError)
+		return
+	}
+	id, err := body.insertToMongo(a)
+	if err != nil {
+		http.Error(w, "Story creation failed.", http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(id))
+}
+
+func (body *Body) insertToMongo(a *AppContext) (id string, err error) {
+	mongoSession := a.mongoSession.Clone()
+	defer mongoSession.Close()
+
+	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotStoryCollection)
+
+	id = GetNewId()
+	story := Story{Id: id, Created: time.Now()}
+	story.Body = *body
+
+	err = c.Insert(story)
+	if mgo.IsDup(err) {
+		// retry insert with new id
+		body.insertToMongo(a)
+	} else if err != nil {
+		logError("Mongo insert to %s/%s returned '%s'", Configuration.MongoDbName,
+			inkblotStoryCollection, err.Error())
+	}
+	return
 }
 
 func getIdValidateAndSendError(w http.ResponseWriter, p *httprouter.Params) (id string, err error) {
