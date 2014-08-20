@@ -14,7 +14,7 @@ const (
 
 func (a *AppContext) getStory(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 
-	id, err := getIdvalidateAndSendError(w, &p)
+	id, err := getIdValidateAndSendError(w, &p)
 	if err != nil {
 		return
 	}
@@ -35,12 +35,12 @@ func (a *AppContext) getStory(w http.ResponseWriter, req *http.Request, p httpro
 	story.writeToResponse(w)
 }
 
-func getIdvalidateAndSendError(w http.ResponseWriter, p *httprouter.Params) (id string, err error) {
+func getIdValidateAndSendError(w http.ResponseWriter, p *httprouter.Params) (id string, err error) {
 	id = p.ByName("id")
 	if len(id) < 2 || len(id) > 10 {
 		err = errors.New("Story id failed validity check")
 		logError("%s : id = %s", err.Error(), id)
-		http.Error(w, err.Error(), 400)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 	return
 }
@@ -49,7 +49,7 @@ func (story *Story) writeToResponse(w http.ResponseWriter) {
 	buf, err := json.Marshal(&story)
 	if err != nil {
 		logFatal(err.Error())
-		http.Error(w, "json marshalling failed.", 500)
+		http.Error(w, "json marshalling failed.", http.StatusInternalServerError)
 		return
 	}
 	writeJson(w, &buf)

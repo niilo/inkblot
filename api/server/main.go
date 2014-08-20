@@ -45,6 +45,7 @@ var Configuration struct {
 	ServerAddr                 string
 	ReadTimeout                time.Duration
 	WriteTimeout               time.Duration
+	HandlerTimeout             time.Duration
 	AllowCors                  bool
 	MongoUrl                   string
 	MongoDbName                string
@@ -64,7 +65,7 @@ func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func timeoutHandler(h http.Handler) http.Handler {
-	return http.TimeoutHandler(h, 1*time.Second, "timed out")
+	return http.TimeoutHandler(h, Configuration.HandlerTimeout, "request processing timed out")
 }
 
 // Recoverer is a middleware that recovers from panics, logs the panic (and a
@@ -116,6 +117,7 @@ func main() {
 
 	defer mongoSession.Close()
 
+	mongoSession.SetSocketTimeout(Configuration.HandlerTimeout)
 	// Switch the session to a monotonic behavior.
 	mongoSession.SetMode(mgo.Monotonic, true)
 	appContext.mongoSession = mongoSession
@@ -130,7 +132,14 @@ func main() {
 	chain := alice.New(timeoutHandler, recoverHandler).Then(router)
 
 	logInfo("Listening on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", chain))
+	s := &http.Server{
+		Addr:           Configuration.ServerAddr,
+		Handler:        chain,
+		ReadTimeout:    Configuration.ReadTimeout,
+		WriteTimeout:   Configuration.WriteTimeout,
+		MaxHeaderBytes: 1 << 20,
+	}
+	log.Fatal(s.ListenAndServe())
 
 }
 
