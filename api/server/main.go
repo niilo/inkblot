@@ -129,6 +129,8 @@ func main() {
 	router.GET("/search", handleSearch)
 	router.POST("/story/", appContext.createStory)
 	router.GET("/story/:id", appContext.getStory)
+	router.POST("/user", appContext.CreateUser)
+	router.GET("/user/:id", appContext.GetUser)
 
 	chain := alice.New(timeoutHandler, recoverHandler).Then(router)
 
