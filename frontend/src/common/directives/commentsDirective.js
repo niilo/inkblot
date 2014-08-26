@@ -1,6 +1,10 @@
 'use strict';
 
-angular.module('inkblot.commentsDirective', [])
+angular.module('inkblot.commentsDirective', ['restangular'])
+
+.config(function (RestangularProvider) {
+  RestangularProvider.setBaseUrl('http://inkblot.vcap.me:1234');
+})
     
 .directive('inkblotComments', ['commentsFactory', function (commentsFactory) {
     return {
