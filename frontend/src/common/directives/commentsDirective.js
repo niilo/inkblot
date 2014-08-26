@@ -61,7 +61,7 @@ angular.module('inkblot.commentsDirective', ['restangular'])
     };
 }])
 
-.factory('commentsFactory', [function () {
+.factory('commentsFactory', ['Restangular', function (Restangular) {
     return {
         put: function (comment) {
             comment.author = 'anonymous';
@@ -83,10 +83,14 @@ angular.module('inkblot.commentsDirective', ['restangular'])
             return comments;
         },
         like: function (index) {
-            console.log('liked : ' + index);
+            Restangular.one('story', index).one('like').get().then(function () {
+                console.log('liked comment::' + index);
+            });
         },
         hate: function (index) {
-            console.log('hated : ' + index);
+            Restangular.one('story', index).one('hate').get().then(function () {
+                console.log('hated comment::' + index);
+            });
         }
     };
 }])
