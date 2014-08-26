@@ -20,6 +20,7 @@ import (
 	"github.com/justinas/alice"
 	"github.com/niilo/golib/context/google"
 	"github.com/niilo/golib/context/userip"
+	"github.com/niilo/golib/http/handlers"
 	"github.com/niilo/golib/smtp"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -66,6 +67,12 @@ func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 func timeoutHandler(h http.Handler) http.Handler {
 	return http.TimeoutHandler(h, Configuration.HandlerTimeout, "request processing timed out")
+}
+
+func corsHandler(h http.Handler) http.Handler {
+	cors := handlers.CORSHandler{}
+	cors.Handler = h
+	return http.HandlerFunc(cors.ServeHTTP)
 }
 
 // Recoverer is a middleware that recovers from panics, logs the panic (and a
@@ -132,7 +139,7 @@ func main() {
 	router.POST("/user", appContext.CreateUser)
 	router.GET("/user/:id", appContext.GetUser)
 
-	chain := alice.New(timeoutHandler, recoverHandler).Then(router)
+	chain := alice.New(timeoutHandler, recoverHandler, corsHandler).Then(router)
 
 	logInfo("Listening on port 8080")
 	s := &http.Server{
