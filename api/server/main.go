@@ -20,7 +20,6 @@ import (
 	"github.com/justinas/alice"
 	"github.com/niilo/golib/context/google"
 	"github.com/niilo/golib/context/userip"
-	"github.com/niilo/golib/http/handlers"
 	"github.com/niilo/golib/smtp"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -47,7 +46,7 @@ var Configuration struct {
 	ReadTimeout                time.Duration
 	WriteTimeout               time.Duration
 	HandlerTimeout             time.Duration
-	AllowCors                  bool
+	CorsAllowedOrigin          string
 	MongoUrl                   string
 	MongoDbName                string
 	SmtpHost                   string
@@ -70,9 +69,20 @@ func timeoutHandler(h http.Handler) http.Handler {
 }
 
 func corsHandler(h http.Handler) http.Handler {
-	cors := handlers.CORSHandler{}
-	cors.Handler = h
-	return http.HandlerFunc(cors.ServeHTTP)
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		if origin := req.Header.Get("Origin"); origin == Configuration.CorsAllowedOrigin {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+			w.Header().Set("Access-Control-Allow-Headers",
+				"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		}
+		// Stop here if its Preflighted OPTIONS request
+		if req.Method == "OPTIONS" {
+			return
+		}
+		h.ServeHTTP(w, req)
+	}
+	return http.HandlerFunc(fn)
 }
 
 // Recoverer is a middleware that recovers from panics, logs the panic (and a
@@ -134,7 +144,7 @@ func main() {
 	router.GET("/json", appContext.handleJSON)
 	router.GET("/hello/:name", Hello)
 	router.GET("/search", handleSearch)
-	router.POST("/story/", appContext.createStory)
+	router.POST("/story", appContext.createStory)
 	router.GET("/story/:id", appContext.getStory)
 	router.POST("/user", appContext.CreateUser)
 	router.GET("/user/:id", appContext.GetUser)
