@@ -62,25 +62,35 @@ angular.module('inkblot.commentsDirective', ['restangular'])
 }])
 
 .factory('commentsFactory', ['Restangular', function (Restangular) {
-    return {
+    
+    var restComments = Restangular.all('story');
+    
+    return {        
         put: function (comment) {
             comment.author = 'anonymous';
             comment.published = new Date();
-            localStorage.setItem('comment' + comment.id, JSON.stringify(comment));
-            return this.getAll();
+            //localStorage.setItem('comment' + comment.id, JSON.stringify(comment));
+            //Restangular.all('story').post(comment);
+            restComments.post(comment);
+            return this.get();
         },
         get: function (index) {
-            return JSON.parse(localStorage.getItem('comment' + index));
+            //return JSON.parse(localStorage.getItem('comment' + index));
+            restComments.get('1s33ff');
         },
         getAll: function () {
-            var comments = [];
+            /*var comments = [];
             for (var i = 0; i < localStorage.length; i++) {
                 if (localStorage.key(i).indexOf('comment') !== -1) {
                     var comment = localStorage.getItem(localStorage.key(i));
                     comments.push(JSON.parse(comment));
                 }
             }
-            return comments;
+            return comments;*/
+            Restangular.one('story', '1s33ff').get().then(function (comment) {
+                console.log('got comment::' + comment);
+                return comment;
+            });
         },
         like: function (index) {
             Restangular.one('story', index).one('like').get().then(function () {
