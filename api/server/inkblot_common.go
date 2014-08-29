@@ -3,8 +3,6 @@ package main
 import (
 	"log"
 	"math/rand"
-	"net"
-	"net/http"
 )
 
 var alpha = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -23,25 +21,6 @@ func srand(size int) string {
 // This gives 550 731 776 unique id's.
 func GetNewId() string {
 	return srand(5)
-}
-
-func getRemoteAddrs(req *http.Request) string {
-	addr := "-"
-	addr, _, err := net.SplitHostPort(req.RemoteAddr)
-	if err != nil {
-		addr = req.RemoteAddr
-	}
-	return addr
-}
-
-func getRemoteUser(req *http.Request) string {
-	user := "-"
-	if req.URL.User != nil && req.URL.User.Username() != "" {
-		user = req.URL.User.Username()
-	} else if len(req.Header["Remote-User"]) > 0 {
-		user = req.Header["Remote-User"][0]
-	}
-	return user
 }
 
 func info(template string, values ...interface{}) {
