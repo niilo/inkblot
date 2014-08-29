@@ -11,24 +11,28 @@
 package main
 
 import (
-	"code.google.com/p/go.net/context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
+	"log"
+	"math/rand"
+	"net/http"
+	"os"
+	"runtime/debug"
+	"time"
+
+	"code.google.com/p/go.net/context"
 	"github.com/dmotylev/nutrition"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 	"github.com/niilo/golib/context/google"
 	"github.com/niilo/golib/context/userip"
+	"github.com/niilo/golib/http/handlers"
 	"github.com/niilo/golib/smtp"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"html/template"
-	"log"
-	"math/rand"
-	"net/http"
-	"runtime/debug"
-	"time"
+	"io"
 )
 
 // AppContext contains our local context; our database pool, session store, template
@@ -104,6 +108,26 @@ func recoverHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+var logger *log.Logger = log.New(CreateBufIOWritter(), "", 0)
+
+//var logger *log.Logger = log.New(os.Stdout, "", 0)
+
+func CreateBufIOWritter() io.Writer {
+	f, err := os.OpenFile("logFile.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0660)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
+func requestLogHandler(h http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		logHandler := handlers.NewExtendedLogHandler(h, os.Stdout)
+		logHandler.ServeHTTP(w, req)
+	}
+	return http.HandlerFunc(fn)
+}
+
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	confFile := flag.String("conf", "inkblot.cfg", "Full path to configuration file")
@@ -149,7 +173,9 @@ func main() {
 	router.POST("/user", appContext.CreateUser)
 	router.GET("/user/:id", appContext.GetUser)
 
-	chain := alice.New(timeoutHandler, recoverHandler, corsHandler).Then(router)
+	chain := alice.New(requestLogHandler, timeoutHandler, recoverHandler, corsHandler).Then(router)
+
+	//loggerHandler := handlers.NewNCSALoggingHandler(chain, os.Stdout)
 
 	logInfo("Listening on port 8080")
 	s := &http.Server{
