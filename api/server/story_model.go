@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-type BaseStory struct {
-	Id       string        `json:"id"`
-	Created  time.Time     `json:"created"`
-	Likes    int           `json:"likes"`
-	Comments []BaseComment `json:"comments"`
+type ApiStory struct {
+	Id       string       `json:"id"`
+	Created  time.Time    `json:"created"`
+	Likes    int          `json:"likes"`
+	Comments []ApiComment `json:"comments"`
 }
 
 type Story struct {
@@ -53,7 +53,7 @@ type Contents struct {
 	Audit     AuditTrail `json:"audit"`
 }
 
-type BaseComment struct {
+type ApiComment struct {
 	CommentId string    `json:"commentId"`
 	Text      string    `json:"text"`
 	Author    string    `json:"author"`
@@ -94,23 +94,23 @@ type bodyHistory struct {
 	Body    `bson:",inline"`
 }
 
-func (s *Story) ConvertToBaseStory() (b BaseStory) {
-	b.Id = s.Id
-	b.Likes = s.Likes
-	b.Created = s.Created
-	comments := []BaseComment{}
+func (s *Story) ConvertToApiStory() (a ApiStory) {
+	a.Id = s.Id
+	a.Likes = s.Likes
+	a.Created = s.Created
+	comments := []ApiComment{}
 	for _, c := range s.Comments {
 		if !c.Banned {
-			bc := BaseComment{}
-			bc.Author = c.Author
-			bc.CommentId = c.CommentId
-			bc.Likes = c.Likes
-			bc.Published = c.Published
-			bc.Text = c.Text
-			comments = append(comments, bc)
+			ac := ApiComment{}
+			ac.Author = c.Author
+			ac.CommentId = c.CommentId
+			ac.Likes = c.Likes
+			ac.Published = c.Published
+			ac.Text = c.Text
+			comments = append(comments, ac)
 		}
 	}
-	b.Comments = comments
+	a.Comments = comments
 	return
 }
 
