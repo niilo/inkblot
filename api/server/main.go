@@ -29,10 +29,10 @@ import (
 	"github.com/niilo/golib/context/google"
 	"github.com/niilo/golib/context/userip"
 	"github.com/niilo/golib/http/handlers"
+	nio "github.com/niilo/golib/io"
 	"github.com/niilo/golib/smtp"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"io"
 )
 
 // AppContext contains our local context; our database pool, session store, template
@@ -108,21 +108,12 @@ func recoverHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-var logger *log.Logger = log.New(CreateBufIOWritter(), "", 0)
-
-//var logger *log.Logger = log.New(os.Stdout, "", 0)
-
-func CreateBufIOWritter() io.Writer {
-	f, err := os.OpenFile("logFile.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0660)
-	if err != nil {
-		panic(err)
-	}
-	return f
-}
+var logger *log.Logger = log.New(os.Stdout, "", 0)
 
 func requestLogHandler(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
-		logHandler := handlers.NewExtendedLogHandler(h, os.Stdout)
+		rollingWriter, _ := nio.NewRollingFileWriterTime("./inkblot.log", nio.RollingArchiveNone, "", 2, "2006-01-02", nio.RollingIntervalDaily)
+		logHandler := handlers.NewExtendedLogHandler(h, rollingWriter)
 		logHandler.ServeHTTP(w, req)
 	}
 	return http.HandlerFunc(fn)
