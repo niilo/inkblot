@@ -113,7 +113,8 @@ var logger *log.Logger = log.New(os.Stdout, "", 0)
 func requestLogHandler(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		rollingWriter, _ := nio.NewRollingFileWriterTime("./inkblot.log", nio.RollingArchiveNone, "", 2, "2006-01-02", nio.RollingIntervalDaily)
-		logHandler := handlers.NewExtendedLogHandler(h, rollingWriter)
+		bufferedRollingWriter, _ := nio.NewBufferedWriter(rollingWriter, 10240, 0)
+		logHandler := handlers.NewExtendedLogHandler(h, bufferedRollingWriter)
 		logHandler.ServeHTTP(w, req)
 	}
 	return http.HandlerFunc(fn)
