@@ -111,10 +111,13 @@ func recoverHandler(h http.Handler) http.Handler {
 var logger *log.Logger = log.New(os.Stdout, "", 0)
 
 func requestLogHandler(h http.Handler) http.Handler {
+	rollingWriter, err := nio.NewRollingFileWriterTime("./inkblot.log", nio.RollingArchiveNone, "", 2, "2006-01-02", nio.RollingIntervalDaily)
+	if err != nil {
+		fmt.Errorf("Request logger creation failed for %s", err.Error())
+	}
+	logHandler := handlers.NewExtendedLogHandler(h, rollingWriter)
+
 	fn := func(w http.ResponseWriter, req *http.Request) {
-		rollingWriter, _ := nio.NewRollingFileWriterTime("./inkblot.log", nio.RollingArchiveNone, "", 2, "2006-01-02", nio.RollingIntervalDaily)
-		bufferedRollingWriter, _ := nio.NewBufferedWriter(rollingWriter, 10240, 0)
-		logHandler := handlers.NewExtendedLogHandler(h, bufferedRollingWriter)
 		logHandler.ServeHTTP(w, req)
 	}
 	return http.HandlerFunc(fn)
