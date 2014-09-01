@@ -80,13 +80,13 @@ func (a *AppContext) GetUser(w http.ResponseWriter, req *http.Request, p httprou
 	r := userRepo{Session: a.mongoSession}
 	user, err := r.getUserWithID(id)
 	if err != nil {
-		logError(err.Error())
+		Error.Printf(err.Error())
 		http.Error(w, "Request decoding failed.", http.StatusInternalServerError)
 		return
 	}
 	buf, err := json.Marshal(&user)
 	if err != nil {
-		logFatal(err.Error())
+		Error.Printf(err.Error())
 		http.Error(w, "json marshalling failed.", http.StatusInternalServerError)
 		return
 	}
@@ -98,7 +98,7 @@ func (a *AppContext) CreateUser(w http.ResponseWriter, req *http.Request, p http
 	user := User{}
 	err := json.NewDecoder(req.Body).Decode(&user)
 	if err != nil {
-		logError(err.Error())
+		Error.Printf(err.Error())
 		http.Error(w, "Request decoding failed.", http.StatusInternalServerError)
 		return
 	}

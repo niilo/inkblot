@@ -30,7 +30,7 @@ func (a *AppContext) getStory(w http.ResponseWriter, req *http.Request, p httpro
 	story := Story{}
 	err = c.Find(bson.M{"_id": id}).One(&story)
 	if err != nil {
-		logError("Mongo query from %s/%s returned '%s' for id = %s", Configuration.MongoDbName,
+		Error.Printf("Mongo query from %s/%s returned '%s' for id = %s", Configuration.MongoDbName,
 			inkblotStoryCollection, err.Error(), id)
 		http.NotFound(w, req)
 		return
@@ -42,7 +42,7 @@ func (a *AppContext) createStory(w http.ResponseWriter, req *http.Request, p htt
 	body := Body{}
 	err := json.NewDecoder(req.Body).Decode(&body)
 	if err != nil {
-		logError(err.Error())
+		Error.Print(err.Error())
 		http.Error(w, "Request decoding failed.", http.StatusInternalServerError)
 		return
 	}
@@ -69,7 +69,7 @@ func (body *Body) insertToMongo(a *AppContext) (id string, err error) {
 		// retry insert with new id
 		body.insertToMongo(a)
 	} else if err != nil {
-		logError("Mongo insert to %s/%s returned '%s'", Configuration.MongoDbName,
+		Error.Printf("Mongo insert to %s/%s returned '%s'", Configuration.MongoDbName,
 			inkblotStoryCollection, err.Error())
 	}
 	return
@@ -79,7 +79,7 @@ func getIdValidateAndSendError(w http.ResponseWriter, p *httprouter.Params) (id 
 	id = p.ByName("id")
 	if len(id) < 2 || len(id) > 10 {
 		err = errors.New("Story id failed validity check")
-		logError("%s : id = %s", err.Error(), id)
+		Error.Printf("%s : id = %s", err.Error(), id)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 	return
@@ -88,7 +88,7 @@ func getIdValidateAndSendError(w http.ResponseWriter, p *httprouter.Params) (id 
 func (story *Story) writeToResponse(w http.ResponseWriter) {
 	buf, err := json.Marshal(&story)
 	if err != nil {
-		logFatal(err.Error())
+		Error.Printf(err.Error())
 		http.Error(w, "json marshalling failed.", http.StatusInternalServerError)
 		return
 	}
