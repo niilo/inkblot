@@ -130,7 +130,7 @@ var fnLint = function (path, exitOnError) {
     return gulp.src(path, { base: config.app })
         .pipe(plugins.plumber())
         .pipe(plugins.jshint())
-        .pipe(plugins.jshint.reporter('jshint-stylish-ex'))
+        .pipe(plugins.jshint.reporter('jshint-stylish'))
         .pipe(map(function (file, cb) {
             if (!file.jshint.success && exitOnError) {
                 process.exit(1);

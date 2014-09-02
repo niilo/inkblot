@@ -15,7 +15,7 @@ default_attributes(
     }
   },
   'go' => {
-    'version' => '1.2.2'
+    'version' => '1.3.1'
   },
   'n-and-nodejs' => {
     'n' => {

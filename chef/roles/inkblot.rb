@@ -9,10 +9,10 @@ run_list [
   'recipe[locales]',
   'recipe[ntp]',
   'recipe[curl]',
+  'recipe[n-and-nodejs]',
   'recipe[golang]',
   'recipe[mongodb::default]',
   'recipe[java]',
-  'recipe[n-and-nodejs]',
   'recipe[protractor-selenium-server]',
   'recipe[protractor-selenium-server::services]',
 ]
