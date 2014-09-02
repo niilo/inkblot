@@ -34,7 +34,7 @@ cookbook 'mongodb',
   :ref => 'master'
 
 cookbook 'n-and-nodejs',
-  :git => 'https://github.com/exratione/n-and-nodejs-cookbook',
+  :github => 'exratione/n-and-nodejs-cookbook',
   :ref => 'v0.0.2'
   
 cookbook 'protractor-selenium-server',
