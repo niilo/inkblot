@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/niilo/golib/http/handlers"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -39,35 +40,87 @@ func (a *AppContext) getStory(w http.ResponseWriter, req *http.Request, p httpro
 }
 
 func (a *AppContext) createStory(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
-	body := Body{}
-	err := json.NewDecoder(req.Body).Decode(&body)
+	apiComment := ApiComment{}
+	err := json.NewDecoder(req.Body).Decode(&apiComment)
 	if err != nil {
 		Error.Print(err.Error())
 		http.Error(w, "Request decoding failed.", http.StatusInternalServerError)
 		return
 	}
-	id, err := body.insertToMongo(a)
+
+	story := Story{}
+	story.Created = time.Now()
+	story.CommentsCount = 1
+	story.NewestComment = time.Now()
+	story.SubjectId = apiComment.SubjectId
+	story.SubjectUrl = apiComment.SubjectUrl
+	sid, err := story.insertToMongo(a)
 	if err != nil {
 		http.Error(w, "Story creation failed.", http.StatusInternalServerError)
 	}
+
+	comment := NewComment(sid, &apiComment, req)
+	_, err = comment.insertToMongo(a)
+	if err != nil {
+		http.Error(w, "Comment creation failed.", http.StatusInternalServerError)
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(id))
+	w.Write([]byte(sid))
 }
 
-func (body *Body) insertToMongo(a *AppContext) (id string, err error) {
+func NewComment(storyId string, apiComment *ApiComment, req *http.Request) Comment {
+	now := time.Now()
+	comment := Comment{}
+	comment.StoryId = storyId
+	comment.ReplyTo = apiComment.ReplyTo
+	comment.Text = apiComment.Text
+	comment.Author = apiComment.Author
+	comment.Published = now
+	comment.Public = true
+
+	audit := AuditTrail{}
+	audit.Ip = handlers.GetOriginalSourceIP(req)
+	audit.Time = now
+	audit.UserId = handlers.GetRemoteUser(req)
+	comment.Audit = audit
+	return comment
+}
+
+//func (comment *Comment) createFrom(story *Story, apiComment *ApiComment) {}
+
+func (comment *Comment) insertToMongo(a *AppContext) (id string, err error) {
+	mongoSession := a.mongoSession.Clone()
+	defer mongoSession.Close()
+	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotStoryCollection)
+
+	id = GetNewId()
+	comment.CommentId = id
+
+	err = c.Insert(comment)
+	if mgo.IsDup(err) {
+		// retry insert with new id
+		comment.insertToMongo(a)
+	} else if err != nil {
+		Error.Printf("Mongo insert to %s/%s returned '%s'", Configuration.MongoDbName,
+			inkblotStoryCollection, err.Error())
+	}
+	return
+}
+
+func (story *Story) insertToMongo(a *AppContext) (id string, err error) {
 	mongoSession := a.mongoSession.Clone()
 	defer mongoSession.Close()
 
 	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotStoryCollection)
 
 	id = GetNewId()
-	story := Story{Id: id, Created: time.Now()}
-	story.Body = *body
+	story.SubjectId = id
 
 	err = c.Insert(story)
 	if mgo.IsDup(err) {
 		// retry insert with new id
-		body.insertToMongo(a)
+		story.insertToMongo(a)
 	} else if err != nil {
 		Error.Printf("Mongo insert to %s/%s returned '%s'", Configuration.MongoDbName,
 			inkblotStoryCollection, err.Error())

@@ -1,85 +1,48 @@
 package main
 
 import (
-	"gopkg.in/mgo.v2/bson"
-	"html"
 	"strings"
 	"time"
 )
 
-type ApiStory struct {
-	Id       string       `json:"id"`
-	Created  time.Time    `json:"created"`
-	Likes    int          `json:"likes"`
-	Comments []ApiComment `json:"comments"`
-}
-
 type Story struct {
-	Id       string    `bson:"_id" json:"id"`
-	Created  time.Time `json:"created" bson:",omitempty"`
-	Body     `bson:",inline"`
+	StoryId       string    `bson:"_id" json:"storyId"`
+	Created       time.Time `json:"created"`
+	SubjectId     string    `json:"subjectId" bson:",omitempty"`
+	SubjectUrl    string    `json:"subjectUrl"`
+	CommentsCount int       `json:"commentsCount"`
+	NewestComment time.Time `json:"newestComment"`
+}
+
+type ApiComment struct {
+	CommentId  string    `json:"commentId"`
+	ReplyTo    string    `json:"replyTo" bson:",omitempty"`
+	Text       string    `json:"text"`
+	Author     string    `json:"author"`
+	Published  time.Time `json:"published"`
+	SubjectId  string    `json:"subjectId" bson:",omitempty"`
+	SubjectUrl string    `json:"subjectUrl"`
+	Likes      int       `json:"likes"`
+}
+
+type Comment struct {
+	CommentId     string `bson:"_id" json:"commentId"`
+	StoryId       string `json:"storyId"`
+	ReplyTo       string `json:"replyTo" bson:",omitempty"`
+	AbuseReported bool   `json:"abuseReported" bson:",omitempty"`
+
+	Contents `bson:",inline"`
 	Social   `bson:",inline"`
-	Abuse    bool `json:"abuse" bson:",omitempty"`
 	Ban      `json:",omitempty" bson:",inline"`
-	Comments []Comment `json:"comments" bson:",omitempty"`
-}
-
-type Body struct {
-	Title      string            `json:"title"`
-	Titles     map[string]string `json:"titles" bson:",omitempty"`
-	Subtitle   string            `json:"subtitle" bson:",omitempty"`
-	Images     []Image           `json:"img" bson:",omitempty"`
-	Slug       string            `json:"slug" bson:",omitempty"`
-	Contents   `bson:",inline"`
-	Categories []string  `json:"categories" bson:",omitempty"`
-	Tags       []string  `json:"tags" bson:",omitempty"`
-	Approved   bool      `json:"approved"`
-	Modified   time.Time `json:"modified" bson:",omitempty"`
-	Embargo    bool      `json:"embargo"`
-}
-
-type Image struct {
-	Url          string `json:"url"`
-	Caption      string `json:"caption" bson:",omitempty"`
-	Photographer string `json:"photographer" bson:",omitempty"`
 }
 
 type Contents struct {
 	Text      string     `json:"text"`
 	Author    string     `json:"author" bson:",omitempty"`
-	Copyright string     `json:"copyright" bson:",omitempty"`
 	Public    bool       `json:"public"`
 	Published time.Time  `json:"published" bson:",omitempty"`
+	Updated   time.Time  `json:"updated" bson:",omitempty"`
 	Audit     AuditTrail `json:"audit"`
-}
-
-type ApiComment struct {
-	CommentId string    `json:"commentId"`
-	Text      string    `json:"text"`
-	Author    string    `json:"author"`
-	Published time.Time `json:"published"`
-	Likes     int       `json:"likes"`
-}
-
-type Comment struct {
-	CommentId string `json:"commentId"`
-	SubjectId string `json:"subjectId" bson:",omitempty"`
-	ReplyTo   string `json:"replyTo" bson:",omitempty"`
-	Contents  `bson:",inline"`
-	Social    `bson:",inline"`
-	Abuse     bool `json:"abuse" bson:",omitempty"`
-	Ban       `json:",omitempty" bson:",inline"`
-}
-
-type Social struct {
-	Likes int      `json:"likes"`
-	Liked []string `json:"liked" bson:",omitempty"`
-	Hated []string `json:"hated" bson:",omitempty"`
-}
-
-type Ban struct {
-	Banned   bool   `json:"banned" bson:",omitempty"`
-	BannedBy string `json:"bannedby,omitempty" bson:",omitempty"`
 }
 
 type AuditTrail struct {
@@ -88,81 +51,21 @@ type AuditTrail struct {
 	Time   time.Time `json:"time"`
 }
 
-type bodyHistory struct {
-	Id      bson.ObjectId `bson:"_id,omitempty" json:"id"`
-	StoryId string        `json:"storyId"`
-	Body    `bson:",inline"`
+type Social struct {
+	Likes   int      `json:"likes"`
+	LikedBy []string `json:"likedBy" bson:",omitempty"`
+	HatedBy []string `json:"hatedBy" bson:",omitempty"`
 }
 
-func (s *Story) ConvertToApiStory() (a ApiStory) {
-	a.Id = s.Id
-	a.Likes = s.Likes
-	a.Created = s.Created
-	comments := []ApiComment{}
-	for _, c := range s.Comments {
-		if !c.Banned {
-			ac := ApiComment{}
-			ac.Author = c.Author
-			ac.CommentId = c.CommentId
-			ac.Likes = c.Likes
-			ac.Published = c.Published
-			ac.Text = c.Text
-			comments = append(comments, ac)
-		}
-	}
-	a.Comments = comments
-	return
-}
-
-func (c *Comment) FormatCommentQuote() {
-	text := html.EscapeString(c.Text)
-	if strings.Count(text, "]") != strings.Count(text, "[") {
-		return
-	}
-	tag := "quote"
-	cssClassBlockquote := "ib-blockquote"
-	cssClassCite := "ib-cite"
-	for strings.Contains(text, "["+tag) {
-		tagStart := strings.Index(text, "["+tag)
-		tagEnd := strings.Index(text, "]") + 1
-		// i := strings.Index(c, "]") + 1
-		if tagEnd != -1 {
-			j := strings.Index(text, "[/"+tag+"]")
-			if j != -1 {
-				block := text[tagEnd:j]
-				// fmt.Printf("\n::xml::\n%s\n", str)
-				str := "<blockquote class=\"" + cssClassBlockquote + "\">"
-				cite := extractCitateFromQuoteTag(text[tagStart:tagEnd])
-				if len(cite) > 0 {
-					str += "<cite class=\"" + cssClassCite + "\">" + cite + "</cite>"
-				}
-				str += block + "</blockquote>"
-				e := j + 3 + len(tag)
-				text = strings.TrimSpace(text[:tagStart] + str + text[e:])
-			} else {
-				text = strings.Replace(text, text[tagStart:tagEnd], "", 1)
-			}
-		}
-	}
-	c.Text = replaceNewLineWithHtmlBreak(text)
+type Ban struct {
+	Banned    bool   `json:"banned" bson:",omitempty"`
+	BannedBy  string `json:"bannedBy,omitempty" bson:",omitempty"`
+	BanReason string `json:"banReason,omitempty" bson:",omitempty"`
 }
 
 func replaceNewLineWithHtmlBreak(text string) string {
 	out := strings.Replace(text, "\r\n", "<br>", -1)
+	out = strings.Replace(out, "\r", "<br>", -1)
 	out = strings.Replace(out, "\n", "<br>", -1)
 	return out
-}
-
-func extractCitateFromQuoteTag(tag string) (replyTo string) {
-	tag = strings.Replace(tag, "[", "", -1)
-	tag = strings.Replace(tag, "]", "", -1)
-	if strings.Contains(tag, "=") {
-		replyTo = strings.Split(tag, "=")[1]
-	}
-	return
-}
-
-type commentHistory struct {
-	Id      bson.ObjectId `bson:"_id,omitempty" json:"id"`
-	Comment `bson:",inline"`
 }
