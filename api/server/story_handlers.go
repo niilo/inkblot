@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	inkblotStoryCollection = "stories"
+	inkblotStoryCollection   = "stories"
+	inkblotCommentCollection = "comments"
 )
 
 func (a *AppContext) getStory(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
@@ -92,7 +93,7 @@ func NewComment(storyId string, apiComment *ApiComment, req *http.Request) Comme
 func (comment *Comment) insertToMongo(a *AppContext) (id string, err error) {
 	mongoSession := a.mongoSession.Clone()
 	defer mongoSession.Close()
-	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotStoryCollection)
+	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
 
 	id = GetNewId()
 	comment.CommentId = id
@@ -115,7 +116,7 @@ func (story *Story) insertToMongo(a *AppContext) (id string, err error) {
 	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotStoryCollection)
 
 	id = GetNewId()
-	story.SubjectId = id
+	story.StoryId = id
 
 	err = c.Insert(story)
 	if mgo.IsDup(err) {
