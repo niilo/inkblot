@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -47,18 +48,36 @@ func TestHandleIndexReturnsWithStatusOK(t *testing.T) {
 	mongoSession.SetMode(mgo.Monotonic, true)
 	app.mongoSession = mongoSession
 
-	req, _ := http.NewRequest("GET", "/story/a8s7df87s", nil)
+	storyId := testCreate(&app, t)
+	testGet(&app, storyId, t)
+}
+
+func testCreate(app *AppContext, t *testing.T) string {
+
+	postData := strings.NewReader("{\"text\":\"tekstiä\",\"subjectId\":\"k2j34\",\"subjectUrl\":\"www.fi/k2j34\"}")
+	req, _ := http.NewRequest("POST", "/story", postData)
+	w := httptest.NewRecorder()
+	app.createStory(w, req, nil)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Non-expected status code:%v\n\tbody: %v, data:%s", http.StatusCreated, w.Code, w.Body.String())
+	}
+	return w.Body.String()
+}
+
+func testGet(app *AppContext, storyId string, t *testing.T) {
+	req, _ := http.NewRequest("GET", "/story/"+storyId, nil)
 	w := httptest.NewRecorder()
 	prm := httprouter.Param{
 		Key:   "id",
-		Value: "a8s7df87s",
+		Value: storyId,
 	}
 	p := make(httprouter.Params, 1, 1)
 	p[0] = prm
 
 	app.getStory(w, req, p)
-
+	fmt.Printf("%d - %s", w.Code, w.Body.String())
 	if w.Code != http.StatusOK {
-		t.Fatalf("Non-expected status code%v:\n\tbody: %v", "200", w.Code)
+		t.Fatalf("Non-expected status code: %v\n\tbody: %v, data:%s", http.StatusOK, w.Code, w.Body.String())
 	}
 }
