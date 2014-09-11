@@ -68,12 +68,9 @@ func testCreate(app *AppContext, t *testing.T) string {
 func testGet(app *AppContext, storyId string, t *testing.T) {
 	req, _ := http.NewRequest("GET", "/story/"+storyId, nil)
 	w := httptest.NewRecorder()
-	prm := httprouter.Param{
-		Key:   "id",
-		Value: storyId,
+	p := httprouter.Params{
+		httprouter.Param{"id", storyId},
 	}
-	p := make(httprouter.Params, 1, 1)
-	p[0] = prm
 
 	app.getStory(w, req, p)
 	fmt.Printf("%d - %s", w.Code, w.Body.String())
