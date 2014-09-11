@@ -73,7 +73,7 @@ func testGet(app *AppContext, storyId string, t *testing.T) {
 	}
 
 	app.getStory(w, req, p)
-	fmt.Printf("%d - %s", w.Code, w.Body.String())
+	fmt.Printf("\n%d - %s\n", w.Code, w.Body.String())
 	if w.Code != http.StatusOK {
 		t.Fatalf("Non-expected status code: %v\n\tbody: %v, data:%s", http.StatusOK, w.Code, w.Body.String())
 	}
