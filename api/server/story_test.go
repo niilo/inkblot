@@ -30,7 +30,7 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-func TestHandleIndexReturnsWithStatusOK(t *testing.T) {
+func TestStoryCreateAndGet(t *testing.T) {
 	// SetupMongoContainer may skip or fatal the test if docker isn't found or something goes
 	// wrong when setting up the container. Thus, no error is returned
 	containerID, ip := dockertest.SetupMongoContainer(t)
