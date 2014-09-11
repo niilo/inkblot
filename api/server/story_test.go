@@ -19,7 +19,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -34,12 +33,10 @@ func TestStoryCreateAndGet(t *testing.T) {
 	// SetupMongoContainer may skip or fatal the test if docker isn't found or something goes
 	// wrong when setting up the container. Thus, no error is returned
 	containerID, ip := dockertest.SetupMongoContainer(t)
-	fmt.Printf("Mongo docker container %v running on %v ip", containerID, ip)
 	defer containerID.KillRemove(t)
 
 	app := AppContext{}
 	mongoSession, err := mgo.Dial(ip)
-	fmt.Print("connecting to mongodb")
 	if err != nil {
 		Error.Printf("MongoDB connection failed, with address '%s'.", Configuration.MongoUrl)
 	}
@@ -73,7 +70,6 @@ func testGet(app *AppContext, storyId string, t *testing.T) {
 	}
 
 	app.getStory(w, req, p)
-	fmt.Printf("\n%d - %s\n", w.Code, w.Body.String())
 	if w.Code != http.StatusOK {
 		t.Fatalf("Non-expected status code: %v\n\tbody: %v, data:%s", http.StatusOK, w.Code, w.Body.String())
 	}
