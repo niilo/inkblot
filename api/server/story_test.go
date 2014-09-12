@@ -19,12 +19,12 @@ limitations under the License.
 package main
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/julienschmidt/httprouter"
 	"github.com/niilo/golib/test/dockertest"
 	"gopkg.in/mgo.v2"
 )
@@ -45,32 +45,54 @@ func TestStoryCreateAndGet(t *testing.T) {
 	mongoSession.SetMode(mgo.Monotonic, true)
 	app.mongoSession = mongoSession
 
-	storyId := testCreate(&app, t)
-	testGet(&app, storyId, t)
+	ts := httptest.NewServer(app.createRoutes())
+	defer ts.Close()
+
+	storyId := testCreate(ts, t)
+	testGet(ts, storyId, t)
 }
 
-func testCreate(app *AppContext, t *testing.T) string {
+var applicationJSON string = "application/json"
+
+func testCreate(ts *httptest.Server, t *testing.T) string {
 
 	postData := strings.NewReader("{\"text\":\"tekstiä\",\"subjectId\":\"k2j34\",\"subjectUrl\":\"www.fi/k2j34\"}")
-	req, _ := http.NewRequest("POST", "/story", postData)
-	w := httptest.NewRecorder()
-	app.createStory(w, req, nil)
 
-	if w.Code != http.StatusCreated {
-		t.Fatalf("Non-expected status code:%v\n\tbody: %v, data:%s", http.StatusCreated, w.Code, w.Body.String())
+	res, err := http.Post(ts.URL+"/story", applicationJSON, postData)
+	data, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		t.Error(err)
 	}
-	return w.Body.String()
+
+	id := string(data)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Non-expected status code: %v\n\tbody: %v, data:%s\n", http.StatusCreated, res.StatusCode, id)
+	}
+	if res.ContentLength != 5 {
+		t.Fatalf("Non-expected content length: %v != %v\n", res.ContentLength, 5)
+	}
+	return id
 }
 
-func testGet(app *AppContext, storyId string, t *testing.T) {
-	req, _ := http.NewRequest("GET", "/story/"+storyId, nil)
-	w := httptest.NewRecorder()
-	p := httprouter.Params{
-		httprouter.Param{"id", storyId},
+func testGet(ts *httptest.Server, storyId string, t *testing.T) {
+
+	res, err := http.Get(ts.URL + "/story/" + storyId)
+	data, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		t.Error(err)
 	}
 
-	app.getStory(w, req, p)
-	if w.Code != http.StatusOK {
-		t.Fatalf("Non-expected status code: %v\n\tbody: %v, data:%s", http.StatusOK, w.Code, w.Body.String())
+	body := string(data)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Non-expected status code: %v\n\tbody: %v, data:%s\n", http.StatusCreated, res.StatusCode, body)
 	}
+	if !strings.Contains(body, "{\"storyId\":\""+storyId+"\",") {
+		t.Fatalf("Non-expected body content: %v", body)
+	}
+	if res.ContentLength < 163 && res.ContentLength > 165 {
+		t.Fatalf("Non-expected content length: %v < %v, content:\n%v\n", res.ContentLength, 160, body)
+	}
+
 }
