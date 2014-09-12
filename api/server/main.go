@@ -117,6 +117,15 @@ func init() {
 	CreateRollingApplicationLoggers(Configuration.AppLog)
 }
 
+func (appContext *AppContext) createRoutes() *httprouter.Router {
+	router := httprouter.New()
+	router.POST("/story", appContext.createStory)
+	router.GET("/story/:id", appContext.getStory)
+	router.POST("/user", appContext.CreateUser)
+	router.GET("/user/:id", appContext.GetUser)
+	return router
+}
+
 func main() {
 
 	Info.Print("Initializin server")
@@ -141,13 +150,7 @@ func main() {
 	mongoSession.SetMode(mgo.Monotonic, true)
 	appContext.mongoSession = mongoSession
 
-	router := httprouter.New()
-	router.POST("/story", appContext.createStory)
-	router.GET("/story/:id", appContext.getStory)
-	router.POST("/user", appContext.CreateUser)
-	router.GET("/user/:id", appContext.GetUser)
-
-	chain := alice.New(requestLogHandler, timeoutHandler, recoverHandler, corsHandler).Then(router)
+	chain := alice.New(requestLogHandler, timeoutHandler, recoverHandler, corsHandler).Then(appContext.createRoutes())
 
 	Info.Printf("Listening on %s", Configuration.ServerAddr)
 	s := &http.Server{
