@@ -25,6 +25,10 @@ cookbook 'golang',
   :github => 'NOX73/chef-golang',
   :ref => 'master'
 
+cookbook 'docker',
+  :github => 'bflad/chef-docker',
+  :ref => 'master'
+
 cookbook 'java',
   :github => 'socrata-cookbooks/java',
   :ref => 'master'

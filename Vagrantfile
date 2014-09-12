@@ -41,6 +41,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.provision :shell, :inline => "sudo chown -R vagrant /opt/go"
+  config.vm.provision :shell, :inline => "sudo usermod -G docker vagrant"
   config.vm.provision :shell, :inline => "npm install -g gulp grunt-cli bower phantomjs http-server express"
   
 end
