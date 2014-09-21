@@ -14,7 +14,7 @@ angular.module('inkblot.commentsDirective', ['restangular'])
             scope.openEditor = function (index) {
                 scope.editMode = true;
                 if (index !== undefined) {
-                    scope.commentText = commentsFactory.get(index).content;
+                    scope.commentText = commentsFactory.get(index).text;
                     scope.index = index;
                 } else {
                     scope.commentText = undefined;
@@ -24,7 +24,7 @@ angular.module('inkblot.commentsDirective', ['restangular'])
                 if (scope.commentText !== "" && scope.commentText !== undefined) {
                     var comment = {};
                     comment.title = scope.commentText.length > 10 ? scope.commentText.substring(0, 10) + '. . .' : scope.commentText;
-                    comment.content = scope.commentText;
+                    comment.text = scope.commentText;
                     comment.id = scope.index !== -1 ? scope.index : localStorage.length;
                     scope.comments = commentsFactory.put(comment);
                 }
@@ -38,8 +38,7 @@ angular.module('inkblot.commentsDirective', ['restangular'])
             scope.hateComment = function (index) {
                 commentsFactory.hate(index);
             };
-                
-
+            
             scope.restore = function () {
                 scope.editMode = false;
                 scope.index = -1;
@@ -50,7 +49,7 @@ angular.module('inkblot.commentsDirective', ['restangular'])
 
             scope.restore();
 
-            scope.comments = commentsFactory.getAll();
+            commentsFactory.getAll(scope);
 
             editor.bind('keyup keydown', function () {
                 scope.commentText = editor.text().trim();
@@ -71,14 +70,14 @@ angular.module('inkblot.commentsDirective', ['restangular'])
             comment.published = new Date();
             //localStorage.setItem('comment' + comment.id, JSON.stringify(comment));
             //Restangular.all('story').post(comment);
-            restComments.post(comment);
+            restComments.all('jTU3h').all('comment').post(comment);
             return this.get();
         },
         get: function (index) {
             //return JSON.parse(localStorage.getItem('comment' + index));
-            restComments.get('1s33ff');
+            restComments.one('jTU3h').one('comments').get();
         },
-        getAll: function () {
+        getAll: function (scope) {
             /*var comments = [];
             for (var i = 0; i < localStorage.length; i++) {
                 if (localStorage.key(i).indexOf('comment') !== -1) {
@@ -87,9 +86,9 @@ angular.module('inkblot.commentsDirective', ['restangular'])
                 }
             }
             return comments;*/
-            Restangular.one('story', '1s33ff').get().then(function (comment) {
-                console.log('got comment::' + comment);
-                return comment;
+            Restangular.one('story', 'jTU3h').one('comments').get().then(function (comments) {
+                console.log('got comment::' + JSON.stringify(comments));
+                scope.comments = comments;
             });
         },
         like: function (index) {

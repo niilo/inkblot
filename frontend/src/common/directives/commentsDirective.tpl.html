@@ -33,7 +33,8 @@ $( editor ).keypress( function ( e ) {
     }
 });
 </script>
-<div class="comment-area" ng-show="comments.length" ng-repeat="comment in comments|orderBy:'id'">
+-# {{comments.storyId}} #-
+<div class="comment-area" ng-show="comments.comments.length" ng-repeat="comment in comments.comments|orderBy:'id'">
     <div class="pull-left">
         <i class="fa fa-comments-o fa-2x"></i>
     </div>
@@ -54,10 +55,10 @@ $( editor ).keypress( function ( e ) {
         <small> ({{comment.published | date:'dd.MM.yy @ HH:mm' }})</small>
       </h4>
         <div class="comment-id" hidden="true">{{comment.id}}</div>
-        <div class="comment-text">{{comment.content | quote}}</div>
+        <div class="comment-text">{{comment.text | quote}}</div>
     </div>
 </div>
-<div class="comment-area" ng-hide="comments.length">
+<div class="comment-area" ng-hide="comments.comments.length">
     No comments. Be brave and write first.
 </div>
 <div id="editor" ng-show="editMode" class="comment-area" contenteditable="true" ng-bind="commentText"></div>
