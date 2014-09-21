@@ -25,6 +25,12 @@ type ApiComment struct {
 	Likes      int       `json:"likes"`
 }
 
+type ApiComments struct {
+	StoryId  string       `json:"storyId"`
+	Count    int          `json:"count"`
+	Comments []ApiComment `json:"comments"`
+}
+
 type Comment struct {
 	CommentId     string `bson:"_id" json:"commentId"`
 	StoryId       string `json:"storyId"`
