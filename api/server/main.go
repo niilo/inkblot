@@ -121,6 +121,11 @@ func (appContext *AppContext) createRoutes() *httprouter.Router {
 	router := httprouter.New()
 	router.POST("/story", appContext.createStory)
 	router.GET("/story/:id", appContext.getStory)
+	router.GET("/story/:id/comments", appContext.getStoryComments)
+	router.POST("/story/:id/comment", appContext.createStoryComment)
+	router.PUT("/comment/:id/like", appContext.getStory)
+	router.PUT("/comment/:id/hate", appContext.getStory)
+	router.PUT("/comment/:id/abuse", appContext.getStory)
 	router.POST("/user", appContext.CreateUser)
 	router.GET("/user/:id", appContext.GetUser)
 	return router
