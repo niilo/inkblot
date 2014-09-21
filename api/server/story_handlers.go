@@ -40,6 +40,40 @@ func (a *AppContext) getStory(w http.ResponseWriter, req *http.Request, p httpro
 	story.writeToResponse(w)
 }
 
+func (a *AppContext) getStoryComments(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+
+	id, err := getIdValidateAndSendError(w, &p)
+	if err != nil {
+		return
+	}
+
+	mongoSession := a.mongoSession.Clone()
+	defer mongoSession.Close()
+
+	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
+
+	var comments []ApiComment
+	err = c.Find(bson.M{"storyid": id}).All(&comments)
+	if err != nil {
+		Error.Printf("Mongo query from %s/%s returned '%s' for storyid = %s", Configuration.MongoDbName,
+			inkblotCommentCollection, err.Error(), id)
+		http.NotFound(w, req)
+		return
+	}
+
+	apiComments := ApiComments{}
+	apiComments.Comments = comments
+	apiComments.StoryId = id
+
+	buf, err := json.Marshal(&apiComments)
+	if err != nil {
+		Error.Printf(err.Error())
+		http.Error(w, "json marshalling failed.", http.StatusInternalServerError)
+		return
+	}
+	writeJson(w, &buf)
+}
+
 func (a *AppContext) createStory(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 	apiComment := ApiComment{}
 	err := json.NewDecoder(req.Body).Decode(&apiComment)
@@ -68,6 +102,74 @@ func (a *AppContext) createStory(w http.ResponseWriter, req *http.Request, p htt
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(sid))
+}
+
+func (a *AppContext) createStoryComment(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+	id, err := getIdValidateAndSendError(w, &p)
+	if err != nil {
+		return
+	}
+
+	apiComment := ApiComment{}
+	err = json.NewDecoder(req.Body).Decode(&apiComment)
+	if err != nil {
+		Error.Print(err.Error())
+		http.Error(w, "Request decoding failed.", http.StatusInternalServerError)
+		return
+	}
+
+	comment := NewComment(id, &apiComment, req)
+	_, err = comment.insertToMongo(a)
+	if err != nil {
+		http.Error(w, "Comment creation failed.", http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(id))
+}
+
+func (a *AppContext) likeComment(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+
+	id, err := getIdValidateAndSendError(w, &p)
+	if err != nil {
+		return
+	}
+	userId := "test"
+
+	mongoSession := a.mongoSession.Clone()
+	defer mongoSession.Close()
+	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
+
+	count, _ := c.Find(bson.M{"_id": id, "LikedBy": userId}).Count()
+	// Update only if user has not liked earlier
+	if count == 0 {
+		// don't really care if updates fail
+		_ = c.UpdateId(id, bson.M{"$addToSet": bson.M{"LikedBy": userId}})
+		_ = c.UpdateId(id, bson.M{"$inc": bson.M{"likes": 1}})
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (a *AppContext) hateComment(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+
+	id, err := getIdValidateAndSendError(w, &p)
+	if err != nil {
+		return
+	}
+	userId := "test"
+
+	mongoSession := a.mongoSession.Clone()
+	defer mongoSession.Close()
+	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
+
+	count, _ := c.Find(bson.M{"_id": id, "HatedBy": userId}).Count()
+	// Update only if user has not liked earlier
+	if count == 0 {
+		// don't really care if updates fail
+		_ = c.UpdateId(id, bson.M{"$addToSet": bson.M{"HatedBy": userId}})
+		_ = c.UpdateId(id, bson.M{"$inc": bson.M{"likes": -1}})
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func NewComment(storyId string, apiComment *ApiComment, req *http.Request) Comment {
@@ -131,8 +233,8 @@ func (story *Story) insertToMongo(a *AppContext) (id string, err error) {
 
 func getIdValidateAndSendError(w http.ResponseWriter, p *httprouter.Params) (id string, err error) {
 	id = p.ByName("id")
-	if len(id) < 2 || len(id) > 10 {
-		err = errors.New("Story id failed validity check")
+	if len(id) != 5 {
+		err = errors.New("Id failed validity check")
 		Error.Printf("%s : id = %s", err.Error(), id)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
