@@ -10,12 +10,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.define :inkblot do |t|
   end
   
-  config.vm.synced_folder "./", "/app/"
-  
-  config.vm.network :private_network, ip: "10.0.1.77", :netmask => "255.255.0.0"
+  config.vm.network :private_network, type: "dhcp", :netmask => "255.255.0.0"
   config.vm.network :forwarded_port, host: 4000, guest: 4000
   config.vm.network :forwarded_port, host: 1234, guest: 1234
   config.vm.network :forwarded_port, host: 9999, guest: 9999
+  config.vm.network :forwarded_port, host: 35729, guest: 35729
+  
+  config.vm.synced_folder "./", "/app/", type: "rsync", rsync__exclude: [".git/", "build/", "node_modules/", "vendor/", "*.log", "*.log.*"]
 
   config.vm.provider :virtualbox do |vb|
     vb.name = "inkblot"

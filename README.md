@@ -49,7 +49,13 @@ If everything seems to be fine connect to newly created instance
 
 	vagrant ssh
 
-Run some checks to validate that everything is installed
+For performance reasons ./ directory is synced to virtual instance "/app" with rsync. So to get live updates you need to run rsync on host, so open new terminal window on host machine at same folder where project is and start syncing with
+
+```sh
+$ vagrant rsync-auto
+```
+
+Then return to guest terminal (where vagrant ssh is running) and run some checks to validate that everything is installed
 
 ```sh
 $ go version
