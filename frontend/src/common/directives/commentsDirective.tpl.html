@@ -34,17 +34,17 @@ $( editor ).keypress( function ( e ) {
 });
 </script>
 -# {{comments.storyId}} #-
-<div class="comment-area" ng-show="comments.comments.length" ng-repeat="comment in comments.comments|orderBy:'id'">
+<div class="comment-area" ng-show="story.comments.length" ng-repeat="comment in story.comments|orderBy:'id'">
     <div class="pull-left">
         <i class="fa fa-comments-o fa-2x"></i>
     </div>
     <div class="media-body">
         <div class="well pull-right">
             <span class="badge">{{comment.likes}}</span>
-            <button type="button" class="btn btn-default" ng-disabled="disabled" ng-click="disabled=true; comment.likes = comment.likes+1; likeComment(comment.id)">
+            <button type="button" class="btn btn-default" ng-disabled="disabled" ng-click="disabled=true; comment.likes = comment.likes+1; likeComment(comment.commentId)">
                 <i class="fa fa-thumbs-o-up"></i>
             </button>
-            <button type="button" class="btn btn-default" ng-disabled="disabled" ng-click="disabled=true; comment.likes = comment.likes-1; hateComment(comment.id)">
+            <button type="button" class="btn btn-default" ng-disabled="disabled" ng-click="disabled=true; comment.likes = comment.likes-1; hateComment(comment.commentId)">
                 <i class="fa fa-thumbs-o-down"></i>
             </button>
             <button type="button" class="btn btn-default" ng-click="reply(comment.author,comment.text)">

@@ -15,7 +15,7 @@ type Story struct {
 }
 
 type ApiComment struct {
-	CommentId  string    `json:"commentId"`
+	CommentId  string    `bson:"_id" json:"commentId"`
 	ReplyTo    string    `json:"replyTo" bson:",omitempty"`
 	Text       string    `json:"text"`
 	Author     string    `json:"author"`

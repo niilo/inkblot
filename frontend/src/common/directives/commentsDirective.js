@@ -70,12 +70,12 @@ angular.module('inkblot.commentsDirective', ['restangular'])
             comment.published = new Date();
             //localStorage.setItem('comment' + comment.id, JSON.stringify(comment));
             //Restangular.all('story').post(comment);
-            restComments.all('jTU3h').all('comment').post(comment);
+            restComments.all('kudv8').all('comment').post(comment);
             return this.get();
         },
         get: function (index) {
             //return JSON.parse(localStorage.getItem('comment' + index));
-            restComments.one('jTU3h').one('comments').get();
+            restComments.one('kudv8').one('comments').get();
         },
         getAll: function (scope) {
             /*var comments = [];
@@ -86,19 +86,19 @@ angular.module('inkblot.commentsDirective', ['restangular'])
                 }
             }
             return comments;*/
-            Restangular.one('story', 'jTU3h').one('comments').get().then(function (comments) {
+            Restangular.one('story', 'kudv8').one('comments').get().then(function (comments) {
                 console.log('got comment::' + JSON.stringify(comments));
-                scope.comments = comments;
+                scope.story = comments;
             });
         },
-        like: function (index) {
-            Restangular.one('story', index).one('like').get().then(function () {
-                console.log('liked comment::' + index);
+        like: function (id) {
+            Restangular.one('comment', id).one('like').put().then(function () {
+                console.log('liked comment::' + id);
             });
         },
-        hate: function (index) {
-            Restangular.one('story', index).one('hate').get().then(function () {
-                console.log('hated comment::' + index);
+        hate: function (id) {
+            Restangular.one('comment', id).one('hate').put().then(function () {
+                console.log('hated comment::' + id);
             });
         }
     };
