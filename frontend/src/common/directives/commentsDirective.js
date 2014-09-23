@@ -23,10 +23,9 @@ angular.module('inkblot.commentsDirective', ['restangular'])
             scope.save = function () {
                 if (scope.commentText !== "" && scope.commentText !== undefined) {
                     var comment = {};
-                    comment.title = scope.commentText.length > 10 ? scope.commentText.substring(0, 10) + '. . .' : scope.commentText;
                     comment.text = scope.commentText;
                     comment.id = scope.index !== -1 ? scope.index : localStorage.length;
-                    scope.comments = commentsFactory.put(comment);
+                    commentsFactory.put(scope, comment);
                 }
                 scope.restore();
             };
@@ -65,13 +64,17 @@ angular.module('inkblot.commentsDirective', ['restangular'])
     var restComments = Restangular.all('story');
     
     return {        
-        put: function (comment) {
+        put: function (scope, comment) {
             comment.author = 'anonymous';
             comment.published = new Date();
             //localStorage.setItem('comment' + comment.id, JSON.stringify(comment));
             //Restangular.all('story').post(comment);
-            restComments.all('kudv8').all('comment').post(comment);
-            return this.get();
+            restComments.all('kudv8').all('comment').post(comment).then(function(comments) {
+                console.log("Object saved OK");
+                scope.story = comments;
+            }, function() {
+                console.log("There was an error saving");
+            });
         },
         get: function (index) {
             //return JSON.parse(localStorage.getItem('comment' + index));
@@ -87,7 +90,7 @@ angular.module('inkblot.commentsDirective', ['restangular'])
             }
             return comments;*/
             Restangular.one('story', 'kudv8').one('comments').get().then(function (comments) {
-                console.log('got comment::' + JSON.stringify(comments));
+                //console.log('got comment::' + JSON.stringify(comments));
                 scope.story = comments;
             });
         },

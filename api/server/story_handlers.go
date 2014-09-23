@@ -46,32 +46,46 @@ func (a *AppContext) getStoryComments(w http.ResponseWriter, req *http.Request, 
 	if err != nil {
 		return
 	}
+	err = a.returnStoryCommentsAsJSON(id, w)
+	if err != nil {
+		http.NotFound(w, req)
+	}
+}
 
+func (a *AppContext) returnStoryCommentsAsJSON(storyId string, w http.ResponseWriter) error {
+	apiComments, err := a.getStoryCommentsFromMongo(storyId)
+	if err != nil {
+		return err
+	}
+
+	buf, err := json.Marshal(&apiComments)
+	if err != nil {
+		Error.Printf(err.Error())
+		http.Error(w, "json marshalling failed.", http.StatusInternalServerError)
+		return err
+	}
+	writeJson(w, &buf)
+	return nil
+}
+
+func (a *AppContext) getStoryCommentsFromMongo(storyId string) (ApiComments, error) {
 	mongoSession := a.mongoSession.Clone()
 	defer mongoSession.Close()
 
 	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
 
 	var comments []ApiComment
-	err = c.Find(bson.M{"storyid": id}).All(&comments)
+	err := c.Find(bson.M{"storyid": storyId}).All(&comments)
 	if err != nil {
 		Error.Printf("Mongo query from %s/%s returned '%s' for storyid = %s", Configuration.MongoDbName,
-			inkblotCommentCollection, err.Error(), id)
-		http.NotFound(w, req)
-		return
+			inkblotCommentCollection, err.Error(), storyId)
+		return ApiComments{}, err
 	}
 
 	apiComments := ApiComments{}
 	apiComments.Comments = comments
-	apiComments.StoryId = id
-
-	buf, err := json.Marshal(&apiComments)
-	if err != nil {
-		Error.Printf(err.Error())
-		http.Error(w, "json marshalling failed.", http.StatusInternalServerError)
-		return
-	}
-	writeJson(w, &buf)
+	apiComments.StoryId = storyId
+	return apiComments, nil
 }
 
 func (a *AppContext) createStory(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
@@ -125,7 +139,8 @@ func (a *AppContext) createStoryComment(w http.ResponseWriter, req *http.Request
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(id))
+	a.returnStoryCommentsAsJSON(id, w)
+	//w.Write([]byte(id))
 }
 
 func (a *AppContext) likeComment(w http.ResponseWriter, req *http.Request, p httprouter.Params) {

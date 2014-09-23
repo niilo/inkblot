@@ -58,7 +58,7 @@ $( editor ).keypress( function ( e ) {
         <div class="comment-text">{{comment.text | quote}}</div>
     </div>
 </div>
-<div class="comment-area" ng-hide="comments.comments.length">
+<div class="comment-area" ng-hide="story.comments.length">
     No comments. Be brave and write first.
 </div>
 <div id="editor" ng-show="editMode" class="comment-area" contenteditable="true" ng-bind="commentText"></div>
