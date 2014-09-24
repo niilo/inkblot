@@ -50,6 +50,9 @@ $( editor ).keypress( function ( e ) {
             <button type="button" class="btn btn-default" ng-click="reply(comment.author,comment.text)">
                 <i class="fa fa-quote-left"></i> LAINAA
             </button>
+            <button type="button" class="btn btn-default" ng-click="openAbuseMessageEditor(comment.commentId, comment.text)">
+                <i class="fa fa-quote-left"></i> ABUSE
+            </button>
         </div>
         <h4 class="media-heading"> {{comment.author}}
         <small> ({{comment.published | date:'dd.MM.yy @ HH:mm' }})</small>
@@ -61,6 +64,13 @@ $( editor ).keypress( function ( e ) {
 <div class="comment-area" ng-hide="story.comments.length">
     No comments. Be brave and write first.
 </div>
-<div id="editor" ng-show="editMode" class="comment-area" contenteditable="true" ng-bind="commentText"></div>
+<div id="reportAbuseAbout" ng-show="reportAbuse">
+    Create abuse report about message:
+    <div class="comment-text">{{abuseAboutContent | quote}}</div>
+</div>
+<div id="editor" ng-show="editor" class="comment-area" contenteditable="true" ng-bind="commentText"></div>
 <span><a href="#" ng-click="save()" ng-show="editMode">Save</a></span>
-<span><a href="#" ng-click="openEditor()" ng-show="!editMode">Add Comment</a></span>
+<span><a href="#" ng-click="sendAbuseMessage()" ng-show="reportAbuse">Send</a></span>
+<span><a href="#" ng-click="restore()" ng-show="editor">Cancel</a></span>
+<input type="hidden" name="index" value="{{index}}" />
+<span><a href="#" ng-click="openEditor()" ng-show="!editMode && !reportAbuse">Add Comment</a></span>

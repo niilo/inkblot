@@ -12,6 +12,7 @@ angular.module('inkblot.commentsDirective', ['restangular'])
         scope: {},
         link: function (scope, elem, attrs) {
             scope.openEditor = function (index) {
+                scope.editor = true;
                 scope.editMode = true;
                 if (index !== undefined) {
                     scope.commentText = commentsFactory.get(index).text;
@@ -20,6 +21,19 @@ angular.module('inkblot.commentsDirective', ['restangular'])
                     scope.commentText = undefined;
                 }
             };
+            
+            scope.openAbuseMessageEditor = function (index, text) {
+                scope.editor = true;
+                scope.reportAbuse = true;
+                if (index !== undefined) {
+                    //scope.commentText = commentsFactory.get(index).text;
+                    scope.index = index;
+                    scope.abuseAboutContent = text;
+                } else {
+                    scope.commentText = undefined;
+                }
+            };
+            
             scope.save = function () {
                 if (scope.commentText !== "" && scope.commentText !== undefined) {
                     var comment = {};
@@ -38,8 +52,20 @@ angular.module('inkblot.commentsDirective', ['restangular'])
                 commentsFactory.hate(index);
             };
             
+            scope.abuse = function () {
+                if (scope.commentText !== "" && scope.commentText !== undefined) {
+                    var comment = {};
+                    comment.text = scope.commentText;
+                    comment.id = scope.index !== -1 ? scope.index : localStorage.length;
+                    commentsFactory.put(scope, comment);
+                }
+                scope.restore();
+            };
+            
             scope.restore = function () {
                 scope.editMode = false;
+                scope.editor = false;
+                scope.reportAbuse = false;
                 scope.index = -1;
                 scope.commentText = "";
             };
