@@ -10,8 +10,8 @@ const (
 	inkblotCommentCollection = "comments"
 )
 
-func (a *AppContext) getStoryCommentsFromMongo(storyId string) (ApiComments, error) {
-	mongoSession := a.mongo.session.Clone()
+func (m *MongoContext) getStoryCommentsForId(storyId string) (ApiComments, error) {
+	mongoSession := m.session.Clone()
 	defer mongoSession.Close()
 
 	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
@@ -30,8 +30,8 @@ func (a *AppContext) getStoryCommentsFromMongo(storyId string) (ApiComments, err
 	return apiComments, nil
 }
 
-func (story *Story) insertToMongo(a *AppContext) (id string, err error) {
-	mongoSession := a.mongo.session.Clone()
+func (m *MongoContext) insertStory(story *Story) (id string, err error) {
+	mongoSession := m.session.Clone()
 	defer mongoSession.Close()
 
 	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotStoryCollection)
@@ -42,7 +42,7 @@ func (story *Story) insertToMongo(a *AppContext) (id string, err error) {
 	err = c.Insert(story)
 	if mgo.IsDup(err) {
 		// retry insert with new id
-		story.insertToMongo(a)
+		m.insertStory(story)
 	} else if err != nil {
 		Error.Printf("Mongo insert to %s/%s returned '%s'", Configuration.MongoDbName,
 			inkblotStoryCollection, err.Error())
@@ -50,8 +50,8 @@ func (story *Story) insertToMongo(a *AppContext) (id string, err error) {
 	return
 }
 
-func (comment *Comment) insertToMongo(a *AppContext) (id string, err error) {
-	mongoSession := a.mongo.session.Clone()
+func (m *MongoContext) insertComment(comment *Comment) (id string, err error) {
+	mongoSession := m.session.Clone()
 	defer mongoSession.Close()
 	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
 
@@ -61,7 +61,7 @@ func (comment *Comment) insertToMongo(a *AppContext) (id string, err error) {
 	err = c.Insert(comment)
 	if mgo.IsDup(err) {
 		// retry insert with new id
-		comment.insertToMongo(a)
+		m.insertComment(comment)
 	} else if err != nil {
 		Error.Printf("Mongo insert to %s/%s returned '%s'", Configuration.MongoDbName,
 			inkblotStoryCollection, err.Error())

@@ -47,7 +47,7 @@ func (a *AppContext) getStoryComments(w http.ResponseWriter, req *http.Request, 
 }
 
 func (a *AppContext) returnStoryCommentsAsJSON(storyId string, w http.ResponseWriter) error {
-	apiComments, err := a.getStoryCommentsFromMongo(storyId)
+	apiComments, err := a.mongo.getStoryCommentsForId(storyId)
 	if err != nil {
 		return err
 	}
@@ -77,13 +77,13 @@ func (a *AppContext) createStory(w http.ResponseWriter, req *http.Request, p htt
 	story.NewestComment = time.Now()
 	story.SubjectId = apiComment.SubjectId
 	story.SubjectUrl = apiComment.SubjectUrl
-	sid, err := story.insertToMongo(a)
+	sid, err := a.mongo.insertStory(&story)
 	if err != nil {
 		http.Error(w, "Story creation failed.", http.StatusInternalServerError)
 	}
 
 	comment := NewComment(sid, &apiComment, req)
-	_, err = comment.insertToMongo(a)
+	_, err = a.mongo.insertComment(&comment)
 	if err != nil {
 		http.Error(w, "Comment creation failed.", http.StatusInternalServerError)
 	}
@@ -107,7 +107,7 @@ func (a *AppContext) createStoryComment(w http.ResponseWriter, req *http.Request
 	}
 
 	comment := NewComment(id, &apiComment, req)
-	_, err = comment.insertToMongo(a)
+	_, err = a.mongo.insertComment(&comment)
 	if err != nil {
 		http.Error(w, "Comment creation failed.", http.StatusInternalServerError)
 	}
