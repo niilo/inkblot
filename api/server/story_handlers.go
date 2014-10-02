@@ -8,13 +8,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/niilo/golib/http/handlers"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-)
-
-const (
-	inkblotStoryCollection   = "stories"
-	inkblotCommentCollection = "comments"
 )
 
 func (a *AppContext) getStory(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
@@ -24,7 +18,7 @@ func (a *AppContext) getStory(w http.ResponseWriter, req *http.Request, p httpro
 		return
 	}
 
-	mongoSession := a.mongoSession.Clone()
+	mongoSession := a.mongo.session.Clone()
 	defer mongoSession.Close()
 
 	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotStoryCollection)
@@ -66,26 +60,6 @@ func (a *AppContext) returnStoryCommentsAsJSON(storyId string, w http.ResponseWr
 	}
 	writeJson(w, &buf)
 	return nil
-}
-
-func (a *AppContext) getStoryCommentsFromMongo(storyId string) (ApiComments, error) {
-	mongoSession := a.mongoSession.Clone()
-	defer mongoSession.Close()
-
-	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
-
-	var comments []ApiComment
-	err := c.Find(bson.M{"storyid": storyId}).All(&comments)
-	if err != nil {
-		Error.Printf("Mongo query from %s/%s returned '%s' for storyid = %s", Configuration.MongoDbName,
-			inkblotCommentCollection, err.Error(), storyId)
-		return ApiComments{}, err
-	}
-
-	apiComments := ApiComments{}
-	apiComments.Comments = comments
-	apiComments.StoryId = storyId
-	return apiComments, nil
 }
 
 func (a *AppContext) createStory(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
@@ -151,7 +125,7 @@ func (a *AppContext) likeComment(w http.ResponseWriter, req *http.Request, p htt
 	}
 	userId := "test"
 
-	mongoSession := a.mongoSession.Clone()
+	mongoSession := a.mongo.session.Clone()
 	defer mongoSession.Close()
 	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
 
@@ -173,7 +147,7 @@ func (a *AppContext) hateComment(w http.ResponseWriter, req *http.Request, p htt
 	}
 	userId := "test"
 
-	mongoSession := a.mongoSession.Clone()
+	mongoSession := a.mongo.session.Clone()
 	defer mongoSession.Close()
 	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
 
@@ -203,47 +177,6 @@ func NewComment(storyId string, apiComment *ApiComment, req *http.Request) Comme
 	audit.UserId = handlers.GetRemoteUser(req)
 	comment.Audit = audit
 	return comment
-}
-
-//func (comment *Comment) createFrom(story *Story, apiComment *ApiComment) {}
-
-func (comment *Comment) insertToMongo(a *AppContext) (id string, err error) {
-	mongoSession := a.mongoSession.Clone()
-	defer mongoSession.Close()
-	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotCommentCollection)
-
-	id = GetNewId()
-	comment.CommentId = id
-
-	err = c.Insert(comment)
-	if mgo.IsDup(err) {
-		// retry insert with new id
-		comment.insertToMongo(a)
-	} else if err != nil {
-		Error.Printf("Mongo insert to %s/%s returned '%s'", Configuration.MongoDbName,
-			inkblotStoryCollection, err.Error())
-	}
-	return
-}
-
-func (story *Story) insertToMongo(a *AppContext) (id string, err error) {
-	mongoSession := a.mongoSession.Clone()
-	defer mongoSession.Close()
-
-	c := mongoSession.DB(Configuration.MongoDbName).C(inkblotStoryCollection)
-
-	id = GetNewId()
-	story.StoryId = id
-
-	err = c.Insert(story)
-	if mgo.IsDup(err) {
-		// retry insert with new id
-		story.insertToMongo(a)
-	} else if err != nil {
-		Error.Printf("Mongo insert to %s/%s returned '%s'", Configuration.MongoDbName,
-			inkblotStoryCollection, err.Error())
-	}
-	return
 }
 
 func getIdValidateAndSendError(w http.ResponseWriter, p *httprouter.Params) (id string, err error) {

@@ -43,7 +43,7 @@ func TestStoryCreateAndGet(t *testing.T) {
 	defer mongoSession.Close()
 
 	mongoSession.SetMode(mgo.Monotonic, true)
-	app.mongoSession = mongoSession
+	app.mongo.session = mongoSession
 
 	ts := httptest.NewServer(app.createRoutes())
 	defer ts.Close()

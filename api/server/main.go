@@ -32,8 +32,13 @@ import (
 // registry and anything else our handlers need to access. We'll create an instance of it
 // in our main() function and then explicitly pass a reference to it for our handlers to access.
 type AppContext struct {
-	mongoSession *mgo.Session
-	smtpServer   *smtp.SmtpServer
+	//mongoSession *mgo.Session
+	mongo      MongoContext
+	smtpServer *smtp.SmtpServer
+}
+
+type MongoContext struct {
+	session *mgo.Session
 }
 
 var Configuration struct {
@@ -153,7 +158,7 @@ func main() {
 
 	mongoSession.SetSocketTimeout(Configuration.HandlerTimeout)
 	mongoSession.SetMode(mgo.Monotonic, true)
-	appContext.mongoSession = mongoSession
+	appContext.mongo.session = mongoSession
 
 	chain := alice.New(requestLogHandler, timeoutHandler, recoverHandler, corsHandler).Then(appContext.createRoutes())
 

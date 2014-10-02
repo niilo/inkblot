@@ -77,7 +77,7 @@ func (a *AppContext) GetUser(w http.ResponseWriter, req *http.Request, p httprou
 		return
 	}
 
-	r := userRepo{Session: a.mongoSession}
+	r := userRepo{Session: a.mongo.session}
 	user, err := r.getUserWithID(id)
 	if err != nil {
 		Error.Printf(err.Error())
@@ -103,7 +103,7 @@ func (a *AppContext) CreateUser(w http.ResponseWriter, req *http.Request, p http
 		return
 	}
 	user.HashPassword(user.Password)
-	r := userRepo{Session: a.mongoSession}
+	r := userRepo{Session: a.mongo.session}
 	id, err := r.create(&user)
 	if err != nil {
 		http.Error(w, "User creation failed.", http.StatusInternalServerError)
