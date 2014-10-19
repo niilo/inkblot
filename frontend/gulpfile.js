@@ -2,6 +2,7 @@
 
 var gulp    = require('gulp'),
     map     = require('map-stream'),
+    del     = require('del'),
     plugins = require('gulp-load-plugins')(),
     server  = require('tiny-lr')(),
     config  = require('./config.json'),
@@ -16,18 +17,13 @@ var gulp    = require('gulp'),
 var fnSass = function (path) {
     return gulp.src(path)
         .pipe(plugins.plumber())
-        .pipe(plugins.sass({
-            sourceComments: 'map'
-        }))
+        .pipe(plugins.sourcemaps.init())
+        .pipe(plugins.sass())
+        .pipe(plugins.sourcemaps.write())
         .on('error', function (err) {
             console.log(err.message);
             // process.exit(1);
         })
-        .pipe(plugins.autoprefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4', {
-            map: true,
-            from: pkg.name + '-' + pkg.version + '.css',
-            to: pkg.name + '-' + pkg.version + '.css'
-        }))
         .pipe(plugins.size({ showFiles: true, title: '[CSS]' }))
         .pipe(gulp.dest(config.build + '/assets'))
         .on('end', function () {
@@ -54,12 +50,29 @@ gulp.task('styles', ['styles:sass', 'vendor:css'], function () {
     var arr = (config.vendor_files.css).concat(config.build + '/assets/' + pkg.name + '-' + pkg.version + '.css');
     return gulp.src(arr)
         .pipe(plugins.concat(pkg.name + '-' + pkg.version + '.css'))
+        .pipe(plugins.autoprefixer({
+            browsers: ['last 2 version', 'safari 5', 'ie 8', 'ie 9', 'ios 6', 'android 4']
+        }))
         .pipe(plugins.minifyCss({ keepSpecialComments: 0 }))
         .pipe(plugins.rename({ suffix: '.min' }))
         .pipe(plugins.size({ showFiles: true, title: '[CSS]' }))
         .pipe(gulp.dest(config.dist + '/assets'));
 });
 
+// Perform final maintenance
+gulp.task('scripts:tidy', ['scripts:lint', 'scripts:cacheTpls'], function () {
+    var files = config.paths.scripts.concat(config.build + '/app/templates.js');
+    return gulp.src(files)
+        .pipe(plugins.ngAnnotate())
+        .pipe(plugins.concatUtil(pkg.name + '-' + pkg.version + '.js', {
+            process: function (src) {
+                return (src.trim() + '\n').replace(/(^|\n)[ \t]*('use strict'|"use strict");?\s*/g, '$1');
+            }
+        }))
+        .pipe(plugins.concatUtil.header('(function(window, document, undefined) {\n\'use strict\';\n'))
+        .pipe(plugins.concatUtil.footer('\n})(window, document);\n'))
+        .pipe(gulp.dest(config.dist + '/assets'));
+});
 
 
 // Prepare vendor files
@@ -144,10 +157,9 @@ gulp.task('scripts:lint', function () {
 });
 
 // Concat and minify JavaScript
-gulp.task('scripts', ['scripts:lint', 'scripts:cacheTpls', 'vendor:js'], function () {
-    var arr = (config.vendor_files.js).concat(config.paths.scripts.concat(config.build + '/app/templates.js'));
+gulp.task('scripts', ['scripts:tidy', 'vendor:js'], function () {
+    var arr = (config.vendor_files.js).concat(config.dist + '/assets/' + pkg.name + '-' + pkg.version + '.js');
     return gulp.src(arr)
-        .pipe(plugins.ngmin())
         .pipe(plugins.concat(pkg.name + '-' + pkg.version + '.js'))
         .pipe(plugins.size({ showFiles: true, title: '[JS]' }))
         .pipe(plugins.uglify({
@@ -158,7 +170,10 @@ gulp.task('scripts', ['scripts:lint', 'scripts:cacheTpls', 'vendor:js'], functio
         }))
         .pipe(plugins.rename({ suffix: '.min' }))
         .pipe(plugins.size({ showFiles: true, title: '[JS]' }))
-        .pipe(gulp.dest(config.dist + '/assets'));
+        .pipe(gulp.dest(config.dist + '/assets'))
+        .on('end', function () {
+            del(config.dist + '/assets/' + pkg.name + '-' + pkg.version + '.js', { force: true });
+        });
 });
 
 
@@ -177,7 +192,7 @@ gulp.task('assets:img', function () {
 
 // Compress images
 gulp.task('assets', ['assets:img', 'vendor:assets'], function () {
-    return gulp.src(config.build + '/assets/**')
+    return gulp.src([config.build + '/assets/**', '!' + config.build + '/assets/*.+(css|scss)'])
         .pipe(plugins.plumber())
         // .pipe(plugins.bytediff.start())
         .pipe(plugins.newer(config.dist + '/assets'))
@@ -198,9 +213,18 @@ var fnInject = function (path) {
         js  : (config.vendor_files.js).concat(config.build + '/+(app|common)/**/*.module.js').concat(config.build + '/+(app|common)/**/*.js'),
         cdn : config.vendor_files.cdn
     };
+    var sources = gulp.src(inject.css.concat(inject.js), { read: false });
+    var cdn = gulp.src(inject.css.concat(inject.cdn), { read: false });
+
     return gulp.src(path)
-        .pipe(plugins.inject(gulp.src(inject.css.concat(inject.js), { read: false }), {addRootSlash: false, ignorePath: ['/', config.build + '/']}))
-        .pipe(plugins.inject(gulp.src(inject.cdn, {read: false}), {addRootSlash: false, starttag: '<!-- inject:cdn:{{ext}} -->'}))
+        .pipe(plugins.inject(sources, {
+            addRootSlash: false,
+            ignorePath: ['/', config.build + '/']
+        }))
+        .pipe(plugins.inject(cdn, {
+            addRootSlash: false, 
+            starttag: '<!-- inject:cdn:{{ext}} -->'
+        }))
         .pipe(gulp.dest(config.build));
 };
 gulp.task('html:inject', ['styles:sass', 'scripts:lint', 'scripts:cacheTpls'], function () {
@@ -296,9 +320,7 @@ gulp.task('watch', ['styles:sass', 'scripts:lint', 'scripts:cacheTpls', 'assets:
     gulp.watch(config.paths.scripts, function (event) {
         if (event.path.lastIndexOf('.js') === event.path.length - 3) {
             if (event.type === 'deleted') {
-                var buildPath = event.path.replace(config.app, config.build);
-                return gulp.src(buildPath, { read: false })
-                    .pipe(plugins.rimraf());
+                del(event.path.replace(config.app, config.build));
             } else {
                 return fnLint(event.path).pipe(plugins.livereload(server));
             }
@@ -330,9 +352,7 @@ gulp.task('watch', ['styles:sass', 'scripts:lint', 'scripts:cacheTpls', 'assets:
 
     gulp.watch(config.paths.assets, function (event) {
         if (event.type === 'deleted') {
-            var buildPath = event.path.replace(config.app, config.build);
-            return gulp.src(buildPath, { read: false })
-                .pipe(plugins.rimraf());
+            del(event.path.replace(config.app, config.build));
         } else {
             return fnImg(event.path).pipe(plugins.livereload(server));
         }
@@ -348,13 +368,11 @@ gulp.task('watch', ['styles:sass', 'scripts:lint', 'scripts:cacheTpls', 'assets:
 // Clean up development & production directories
 // =============================================
 
-gulp.task('clean:build', function () {
-    return gulp.src(config.build, { read: false })
-        .pipe(plugins.rimraf());
+gulp.task('clean:build', function (cb) {
+    del(config.build, cb);
 });
-gulp.task('clean:compile', function () {
-    return gulp.src(config.dist, { read: false })
-        .pipe(plugins.rimraf({ force: true }));
+gulp.task('clean:dist', function (cb) {
+    del(config.dist, { force: true }, cb);
 });
 
 
@@ -366,7 +384,7 @@ gulp.task('build', ['clean:build'], function () {
     gulp.start('styles:sass', 'scripts:lint', 'scripts:cacheTpls', 'vendor:css', 'vendor:js', 'vendor:cdn', 'vendor:assets', 'test:run', 'assets:img', 'html:inject');
 });
 
-gulp.task('compile', ['clean:compile', 'build'], function () {
+gulp.task('compile', ['clean:dist', 'build'], function () {
     gulp.start('styles', 'scripts', 'assets', 'makeCdn');
 });
 
