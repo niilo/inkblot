@@ -22,6 +22,18 @@ angular.module('inkblot.commentsDirective', ['restangular'])
                 }
             };
             
+            scope.reply = function (cid, comment) {
+                scope.editor = true;
+                scope.editMode = true;
+                var text = '\n[quote][to]' + cid + '[/to]' + comment + '[/quote]\n';
+                console.log(text);
+                if (scope.commentText === undefined) {
+                    scope.commentText = '';
+                }
+                scope.commentText += text;
+                angular.element('#editor').trigger('focus');
+            };
+            
             scope.openAbuseMessageEditor = function (index, text) {
                 scope.editor = true;
                 scope.reportAbuse = true;

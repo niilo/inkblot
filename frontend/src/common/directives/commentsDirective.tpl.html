@@ -33,7 +33,6 @@ $( editor ).keypress( function ( e ) {
     }
 });
 </script>
--# {{comments.storyId}} #-
 <div class="comment-area" ng-show="story.comments.length" ng-repeat="comment in story.comments|orderBy:'id'">
     <div class="pull-left">
         <i class="fa fa-comments-o fa-2x"></i>
@@ -47,7 +46,7 @@ $( editor ).keypress( function ( e ) {
             <button type="button" class="btn btn-default" ng-disabled="disabled" ng-click="disabled=true; comment.likes = comment.likes-1; hateComment(comment.commentId)">
                 <i class="fa fa-thumbs-o-down"></i>
             </button>
-            <button type="button" class="btn btn-default" ng-click="reply(comment.author,comment.text)">
+            <button type="button" class="btn btn-default" ng-click="reply(comment.commentId,comment.text)">
                 <i class="fa fa-quote-left"></i> LAINAA
             </button>
             <button type="button" class="btn btn-default" ng-click="openAbuseMessageEditor(comment.commentId, comment.text)">
@@ -57,8 +56,8 @@ $( editor ).keypress( function ( e ) {
         <h4 class="media-heading"> {{comment.author}}
         <small> ({{comment.published | date:'dd.MM.yy @ HH:mm' }})</small>
       </h4>
-        <div class="comment-id" hidden="true">{{comment.id}}</div>
-        <div class="comment-text">{{comment.text | quote}}</div>
+        <div class="comment-id" hidden="true">{{comment.commentId}}</div>
+        <div class="comment-text"><div ng-bind-html="comment.text | quote"></div></div>
     </div>
 </div>
 <div class="comment-area" ng-hide="story.comments.length">
@@ -66,7 +65,7 @@ $( editor ).keypress( function ( e ) {
 </div>
 <div id="reportAbuseAbout" ng-show="reportAbuse">
     Create abuse report about message:
-    <div class="comment-text">{{abuseAboutContent | quote}}</div>
+    <div class="comment-text">{{abuseAboutContent}}</div>
 </div>
 <div id="editor" ng-show="editor" class="comment-area" contenteditable="true" ng-bind="commentText"></div>
 <span><a href="#" ng-click="save()" ng-show="editMode">Save</a></span>
