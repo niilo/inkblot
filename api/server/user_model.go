@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"code.google.com/p/go.crypto/bcrypt"
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )

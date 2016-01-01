@@ -19,7 +19,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/dmotylev/nutrition"
+	"github.com/dmotylev/appconfig"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 	"github.com/niilo/golib/http/handlers"
@@ -113,7 +113,7 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	confFile := flag.String("conf", "inkblot.cfg", "Full path to configuration file")
 
-	err := nutrition.Env("INKBLOT_").File(*confFile).Feed(&Configuration)
+	err := appconfig.Env("INKBLOT_").File(*confFile).Scan(&Configuration)
 	if err != nil {
 		log.Fatalf("[inkblot] Unable to read properties:%v\n", err)
 	}
